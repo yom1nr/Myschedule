@@ -6,8 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
 
 // --- 1. เชื่อมต่อ Database ---
