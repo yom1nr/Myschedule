@@ -104,7 +104,7 @@ const LoginScreen = ({ onLogin }) => {
     const body = { username, password }; 
 
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(`https://myscheduleapi.onrender.com${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -279,7 +279,7 @@ function App() {
   }, [isDarkMode, theme]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/courses').then(res => res.json()).then(rawCourses => {
+    fetch('https://myscheduleapi.onrender.com/api/courses').then(res => res.json()).then(rawCourses => {
         const cleanCourses = rawCourses.map(c => ({ _id: c._id, code: c.code || c.Code || c.CODE || "N/A", name: c.name || c.Name || c.NAME || "Unknown Course", credit: parseInt(c.credit || c.Credit || c.CREDIT || 0), time: c.time || c.Time || c.TIME || "-" }));
         setCourses(cleanCourses);
       }).catch(err => console.error("Error loading courses:", err));
@@ -300,7 +300,7 @@ function App() {
 
   useEffect(() => {
     if (user && cart.length >= 0) {
-      fetch('http://localhost:5000/api/save-schedule', {
+      fetch('https://myscheduleapi.onrender.com/api/save-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: user.username, cart: cart })
