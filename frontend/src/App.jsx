@@ -88,9 +88,8 @@ const checkConflict = (newCourse, currentCart) => {
   return { conflict: false };
 };
 
-// ==========================================
 // ----------------------------------------------------
-// 🔐 คอมโพเนนต์ LoginScreen (ฉบับแก้ Logic ให้แจ้งเตือนทันที)
+// 🔐 LoginScreen (ฉบับแก้ใหม่: เห็น Alert ชัดเจนทุกกรณี)
 // ----------------------------------------------------
 const LoginScreen = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
@@ -102,17 +101,17 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. 🔥 ขึ้น Loading หมุนๆ ก่อนเลย (กัน User กดรัว + บอกว่ากำลังทำงาน)
+    // 1. 🟡 ขึ้น Loading ค้างไว้ก่อนเลย
     Swal.fire({
       title: 'กำลังตรวจสอบ...',
       text: 'กรุณารอสักครู่',
       allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading() } // สั่งให้หมุน
+      didOpen: () => { Swal.showLoading() }
     });
 
-    const endpoint = isRegister ? 'https://myscheduleapi.onrender.com/api/register' : 'https://myscheduleapi.onrender.com/api/login';
-    // ⚠️ เช็ค URL ของคุณให้ดีว่าไม่มี / ปิดท้าย และเป็น https
-    
+    // ⚠️ เช็ค URL ให้ชัวร์ (ห้ามมี / ปิดท้าย)
+    const baseUrl = 'https://myscheduleapi.onrender.com'; 
+    const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
     const body = { username, password }; 
 
     try {
@@ -121,43 +120,61 @@ const LoginScreen = ({ onLogin }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
+      // 🔥 ดักจับกรณี Server พัง (ส่ง HTML กลับมาแทน JSON)
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server Error (Not JSON)"); // โยนไปเข้า catch ด้านล่าง
+      }
+
       const data = await res.json();
       
-      // 2. ⛔ ถ้า Login ไม่ผ่าน (เช่น รหัสผิด, User ไม่มี)
+      // 2. 🔴 กรณี: รหัสผิด / สมัครซ้ำ / Error จาก Backend
       if (!res.ok) {
         Swal.fire({
           icon: 'error',
-          title: 'เข้าสู่ระบบไม่สำเร็จ',
-          text: data.message || "Username หรือ Password ไม่ถูกต้อง",
+          title: 'เกิดข้อผิดพลาด!',
+          text: data.message || "การทำรายการล้มเหลว",
           confirmButtonColor: '#d33',
           confirmButtonText: 'ลองใหม่'
         });
-        return; // ⛔ จบการทำงานตรงนี้เลย ไม่ไปต่อ
+        return; 
       }
 
-      // 3. ✅ ถ้าผ่านฉลุย
+      // 3. 🟢 กรณี: สมัครสมาชิกสำเร็จ
       if (isRegister) {
         Swal.fire({
           icon: 'success',
-          title: 'สมัครสมาชิกสำเร็จ!',
-          text: 'กรุณาล็อกอินเพื่อใช้งาน',
-          confirmButtonColor: '#28a745'
+          title: 'สมัครสมาชิกเรียบร้อย!',
+          text: 'กรุณาล็อกอินเพื่อเข้าใช้งาน',
+          confirmButtonColor: '#28a745',
+          confirmButtonText: 'ตกลง'
         });
         setIsRegister(false);
-        setPassword("");
-      } else {
-        // ปิด Loading แล้วค่อยพาเข้าหน้าหลัก
-        Swal.close(); 
-        onLogin(data.user, data.token); // 🚀 พาเข้า Dashboard ตรงนี้จุดเดียว
+        setPassword(""); // เคลียร์รหัสผ่าน
+        return;
       }
+
+      // 4. 🟢 กรณี: ล็อกอินสำเร็จ (User ขอให้เด้งบอกก่อนเข้า)
+      // ใช้ await เพื่อรอให้ User เห็น Alert ก่อน 1.5 วิ แล้วค่อยไปต่อ
+      await Swal.fire({
+        icon: 'success',
+        title: 'เข้าสู่ระบบสำเร็จ',
+        text: `ยินดีต้อนรับคุณ ${data.user.username}`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      // จังหวะนี้ค่อยเปลี่ยนหน้า
+      onLogin(data.user, data.token);
 
     } catch (err) {
       console.error(err);
-      // 4. 🔌 ถ้าติดต่อ Server ไม่ได้ (เน็ตหลุด / Server ยังไม่ตื่น)
+      // 5. 🔌 กรณี: เน็ตหลุด / Server ยังไม่ตื่น / Backend พัง
       Swal.fire({
         icon: 'error',
         title: 'ติดต่อ Server ไม่ได้',
-        text: 'Server อาจจะกำลังตื่น (รอ 1 นาที) หรือเช็กอินเทอร์เน็ตของคุณ',
+        text: 'Server อาจจะกำลังโหลด (รอ 1 นาที) หรือลองเช็กอินเทอร์เน็ต',
         confirmButtonColor: '#d33'
       });
     }
@@ -186,100 +203,6 @@ const LoginScreen = ({ onLogin }) => {
           <button type="submit" style={styles.button}>{isRegister ? "Register" : "Login"}</button>
         </form>
         <p style={styles.switchMode}>{isRegister ? "Already have an account?" : "Don't have an account?"} <span onClick={() => setIsRegister(!isRegister)} style={styles.link}>{isRegister ? "Login" : "Register"}</span></p>
-      </div>
-    </div>
-  );
-};
-
-// --- 📱 Mobile View: แสดงเป็นรายการ (สำหรับมือถือ) ---
-const MobileScheduleList = ({ cart, theme }) => {
-  const daysOrder = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-  const fullDays = { 'Mo': 'วันจันทร์', 'Tu': 'วันอังคาร', 'We': 'วันพุธ', 'Th': 'วันพฤหัสบดี', 'Fr': 'วันศุกร์', 'Sa': 'วันเสาร์', 'Su': 'วันอาทิตย์' };
-  
-  // จัดกลุ่มวิชาตามวัน
-  const scheduleByDay = {};
-  cart.forEach(course => {
-    const schedules = parseSchedule(course.time);
-    schedules.forEach(sch => {
-      if (!scheduleByDay[sch.day]) scheduleByDay[sch.day] = [];
-      scheduleByDay[sch.day].push({ ...sch, course });
-    });
-  });
-
-  // เรียงลำดับตามเวลาเรียน
-  Object.keys(scheduleByDay).forEach(day => {
-    scheduleByDay[day].sort((a, b) => a.startTotal - b.startTotal);
-  });
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "15px", marginBottom: "20px" }}>
-      {daysOrder.map(day => {
-        if (!scheduleByDay[day]) return null;
-        return (
-          <div key={day} style={{ background: theme.cardBg, borderRadius: "10px", padding: "15px", border: `1px solid ${theme.cardBorder}`, boxShadow: theme.shadow }}>
-            <h3 style={{ margin: "0 0 10px 0", color: "#FF7F00", borderBottom: `1px solid ${theme.cardBorder}`, paddingBottom: "5px" }}>
-              {fullDays[day]}
-            </h3>
-            {scheduleByDay[day].map((item, idx) => (
-              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: "10px", color: theme.text }}>
-                <div style={{ background: "#007bff", width: "4px", height: "40px", borderRadius: "2px", flexShrink: 0 }}></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold", fontSize: "16px" }}>{item.course.code}</div>
-                  <div style={{ fontSize: "14px", opacity: 0.8 }}>{item.course.name}</div>
-                  <div style={{ display: "flex", gap: "15px", marginTop: "5px", fontSize: "13px", color: theme.text, opacity: 0.7 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}><FaClock /> {item.startH}:{item.startM.toString().padStart(2,'0')} - {item.endH}:{item.endM.toString().padStart(2,'0')}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}><FaMapMarkerAlt /> {item.room}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      })}
-      {cart.length === 0 && <div style={{ textAlign: "center", color: theme.text, padding: "20px" }}>ยังไม่มีวิชาเรียน</div>}
-    </div>
-  );
-};
-
-// --- 💻 Desktop View: ตาราง Grid ---
-const ScheduleGrid = ({ cart, getSection, captureRef, theme }) => {
-  const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-  const allSchedules = cart.flatMap(course => parseSchedule(course.time));
-  let minStart = 8; let maxEnd = 18;
-  if (allSchedules.length > 0) {
-    const startTimes = allSchedules.map(s => s.startH);
-    const endTimes = allSchedules.map(s => s.endH);
-    minStart = Math.min(...startTimes, 8);
-    maxEnd = Math.max(...endTimes, 18);
-  }
-  const startHour = minStart; const endHour = maxEnd; 
-  const totalHours = endHour - startHour + 1;
-  const timeHeaders = Array.from({ length: totalHours }, (_, i) => startHour + i);
-
-  return (
-    <div ref={captureRef} style={{ margin: "20px 0", width: "100%", background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", boxShadow: theme.shadow, padding: "10px", boxSizing: "border-box", overflow: "hidden" }}>
-      <div style={{ display: "grid", gap: "1px", background: theme.gridBg, border: `1px solid ${theme.gridBg}`, gridTemplateColumns: `80px repeat(${totalHours * 2}, 1fr)`, gridTemplateRows: "50px repeat(7, 60px)", width: "100%" }}>
-        <div style={{ background: theme.gridHeader, color: "white", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:"bold" }}>Day / Time</div>
-        {timeHeaders.map(t => (<div key={t} style={{ gridColumn: "span 2", background: theme.gridSubHeader, color: "white", display:"flex", alignItems:"center", justifyContent:"center", fontSize: "11px", fontWeight:"500", whiteSpace: "nowrap" }}>{t.toString().padStart(2, '0')}:00 - {(t + 1).toString().padStart(2, '0')}:00</div>))}
-        {days.map((day, rowIndex) => (<><div key={day} style={{ background: "#FF7F00", color: "white", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gridColumn: "1 / 2", gridRow: `${rowIndex + 2} / ${rowIndex + 3}` }}>{day}</div>{Array.from({ length: totalHours * 2 }).map((_, colIndex) => (<div key={`${day}-${colIndex}`} style={{ background: theme.gridCell, gridColumn: `${colIndex + 2} / ${colIndex + 3}`, gridRow: `${rowIndex + 2} / ${rowIndex + 3}` }}></div>))}</>))}
-        {cart.map((course, index) => {
-          const schedules = parseSchedule(course.time);
-          const colors = ["#FF5733", "#28A745", "#007BFF", "#E83E8C", "#17A2B8", "#FD7E14"];
-          return schedules.map((sch, i) => {
-            const rowStart = days.indexOf(sch.day) + 2;
-            const startSlot = (sch.startH - startHour) * 2 + (sch.startM >= 30 ? 1 : 0);
-            const endSlot = (sch.endH - startHour) * 2 + (sch.endM >= 30 ? 1 : 0);
-            const colStart = startSlot + 2; const colEnd = endSlot + 2;
-            if (rowStart < 2 || colStart < 2) return null;
-            return (
-              <div key={`${course.code}-${i}`} style={{ gridRow: `${rowStart} / ${rowStart + 1}`, gridColumn: `${colStart} / ${colEnd}`, background: colors[index % colors.length], color: "white", margin: "1px", borderRadius: "4px", padding: "2px", zIndex: 10, fontSize: "10px", overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", lineHeight: "1.2", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} title={`${course.code} ${course.name} Room: ${sch.room}`}>
-                <div style={{fontWeight:"bold", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%"}}>{course.code}</div>
-                <div style={{opacity:0.9, whiteSpace:"nowrap"}}>Sec {getSection(course)}</div>
-                <div style={{whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%"}}>📍 {sch.room}</div>
-              </div>
-            )
-          });
-        })}
       </div>
     </div>
   );
