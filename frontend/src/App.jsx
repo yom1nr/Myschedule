@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import html2canvas from 'html2canvas'
-import { FaUser, FaLock, FaMoon, FaSun, FaClock, FaMapMarkerAlt } from 'react-icons/fa'; 
+import { FaUser, FaLock, FaMoon, FaSun, FaClock, FaMapMarkerAlt, FaTimes } from 'react-icons/fa'; 
 import Swal from 'sweetalert2'; 
 
 // ==========================================
@@ -71,18 +71,18 @@ const checkConflict = (newCourse, currentCart) => {
 // 🧱 Components
 // ==========================================
 
-// 🔐 LoginScreen (เพิ่ม CSS Fix Z-Index แล้ว!)
-const LoginScreen = ({ onLogin }) => {
+// 🔐 LoginScreen (แบบ Popup Modal)
+// ปรับปรุง: มีปุ่มปิด (X) เพื่อให้คนกดปิดแล้วดูเว็บต่อได้ (แบบ Guest)
+const LoginModal = ({ isOpen, onClose, onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   
-  const backgroundUrl = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80";
+  if (!isOpen) return null; // ถ้าไม่เปิด ก็ไม่แสดงอะไรเลย
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Loading
     Swal.fire({
       title: 'กำลังตรวจสอบ...',
       text: 'กรุณารอสักครู่',
@@ -108,7 +108,6 @@ const LoginScreen = ({ onLogin }) => {
 
       const data = await res.json();
       
-      // 2. Error
       if (!res.ok) {
         await Swal.fire({
           icon: 'error',
@@ -120,7 +119,6 @@ const LoginScreen = ({ onLogin }) => {
         return; 
       }
 
-      // 3. Register Success
       if (isRegister) {
         await Swal.fire({
           icon: 'success',
@@ -134,12 +132,11 @@ const LoginScreen = ({ onLogin }) => {
         return;
       }
 
-      // 4. Login Success (รอ 2 วิ + มีหลอดเวลา)
       await Swal.fire({
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ',
         text: `ยินดีต้อนรับคุณ ${data.user.username}`,
-        timer: 2000,
+        timer: 1500,
         timerProgressBar: true,
         showConfirmButton: false
       });
@@ -151,15 +148,16 @@ const LoginScreen = ({ onLogin }) => {
       Swal.fire({
         icon: 'error',
         title: 'ติดต่อ Server ไม่ได้',
-        text: 'Server อาจจะกำลังโหลด (รอ 1 นาที) หรือลองเช็กอินเทอร์เน็ต',
+        text: 'Server อาจจะกำลังโหลด หรือลองเช็กอินเทอร์เน็ต',
         confirmButtonColor: '#d33'
       });
     }
   };
 
   const styles = {
-    container: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover", backgroundPosition: "center", fontFamily: "'Poppins', sans-serif", zIndex: 9999 },
-    glassBox: { background: "rgba(255, 255, 255, 0.05)", borderRadius: "16px", boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)", backdropFilter: "blur(8.5px)", WebkitBackdropFilter: "blur(8.5px)", border: "1px solid rgba(255, 255, 255, 0.2)", padding: "40px", width: "380px", textAlign: "center", color: "white" },
+    overlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(5px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10000 },
+    glassBox: { background: "rgba(20, 20, 20, 0.9)", borderRadius: "16px", boxShadow: "0 4px 30px rgba(0, 0, 0, 0.5)", border: "1px solid rgba(255, 255, 255, 0.1)", padding: "40px", width: "380px", textAlign: "center", color: "white", position: "relative" },
+    closeBtn: { position: "absolute", top: "15px", right: "15px", background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" },
     inputContainer: { position: "relative", marginBottom: "20px" },
     inputIcon: { position: "absolute", top: "50%", left: "15px", transform: "translateY(-50%)", color: "white", fontSize: "14px" },
     input: { width: "100%", padding: "12px 15px 12px 45px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.3)", background: "transparent", color: "white", outline: "none", fontSize: "14px", boxSizing: "border-box" },
@@ -170,11 +168,10 @@ const LoginScreen = ({ onLogin }) => {
   };
 
   return (
-    <div style={styles.container}>
-      {/* 🔥 เพิ่ม CSS บรรทัดนี้เพื่อบังคับให้ Alert เด้งทะลุ LoginScreen ขึ้นมา */}
+    <div style={styles.overlay}>
       <style>{`.swal2-container { z-index: 20000 !important; }`}</style>
-      
       <div style={styles.glassBox}>
+        <button style={styles.closeBtn} onClick={onClose}><FaTimes /></button>
         <h2 style={{ marginBottom: "30px", fontWeight: "bold" }}>{isRegister ? "Register" : "Login"}</h2>
         <form onSubmit={handleSubmit}>
           <div style={styles.inputContainer}><FaUser style={styles.inputIcon} /><input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required style={styles.input} /></div>
@@ -290,6 +287,8 @@ function App() {
   const [cart, setCart] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("theme") === "dark"); 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768); 
+  // 🔥 State สำหรับเปิด/ปิดหน้า Login
+  const [showLoginModal, setShowLoginModal] = useState(false); 
   const scheduleRef = useRef(null);
 
   const theme = isDarkMode ? themes.dark : themes.light; 
@@ -333,10 +332,12 @@ function App() {
       });
   }, []);
 
+  // 🔥 ล็อกอินเสร็จแล้วปิด Modal ทันที
   const handleLogin = (userData, token) => {
     setUser(userData);
     setCart(userData.mySchedule || []);
     localStorage.setItem("userToken", token);
+    setShowLoginModal(false); // ปิดหน้าต่าง Login
   };
 
   const handleLogout = async () => {
@@ -347,7 +348,7 @@ function App() {
       showConfirmButton: false
     });
     setUser(null);
-    setCart([]);
+    setCart([]); // เคลียร์ตารางเรียนเวลากลายเป็น Guest
     localStorage.removeItem("userToken");
   };
 
@@ -364,7 +365,20 @@ function App() {
   const totalCredits = cart.reduce((sum, course) => sum + course.credit, 0);
   const getSection = (course) => { const sameSubject = courses.filter(c => c.code === course.code); return sameSubject.findIndex(c => c._id === course._id) + 1; };
   
+  // 🔥 ฟังก์ชันใหม่: เช็คก่อนว่าล็อกอินยัง?
+  const checkAuth = () => {
+    if (!user) {
+      // ถ้ายังไม่ล็อกอิน ให้เด้ง Modal Login ขึ้นมา
+      setShowLoginModal(true);
+      return false;
+    }
+    return true;
+  };
+
   const addToCart = (course) => {
+    // 🔒 ถ้ายังไม่ล็อกอิน ห้ามเพิ่มวิชา
+    if (!checkAuth()) return;
+
     if (cart.find(item => item._id === course._id)) return;
     if (cart.find(item => item.code === course.code)) { 
         Swal.fire({ icon: 'warning', title: 'วิชาซ้ำ!', text: `คุณได้ลงวิชา ${course.code} ไปแล้ว`, confirmButtonColor: '#ffc107', confirmButtonText: 'โอเค' });
@@ -384,6 +398,9 @@ function App() {
   };
 
   const removeFromCart = (courseId) => {
+      // 🔒 ถ้ายังไม่ล็อกอิน ห้ามลบ
+      if (!checkAuth()) return;
+
       Swal.fire({ title: 'ยืนยันการลบ?', text: "ต้องการลบรายวิชานี้ออกจากตาราง?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ลบเลย!', cancelButtonText: 'ยกเลิก' }).then((result) => {
           if (result.isConfirmed) {
               setCart(cart.filter(item => item._id !== courseId));
@@ -393,6 +410,9 @@ function App() {
   }
 
   const handleSaveImage = async () => { 
+      // 🔒 อยากเซฟรูป ต้องล็อกอินก่อน
+      if (!checkAuth()) return;
+
       const element = scheduleRef.current; if (!element) return; 
       Swal.fire({ title: 'กำลังสร้างรูปภาพ...', html: 'กรุณารอสักครู่', timerProgressBar: true, didOpen: () => { Swal.showLoading() } });
       const originalOverflowX = element.style.overflowX; const originalMaxWidth = element.style.maxWidth; const originalWidth = element.style.width; element.style.overflowX = 'visible'; element.style.maxWidth = 'none'; element.style.width = 'fit-content'; 
@@ -413,22 +433,38 @@ function App() {
   let creditStatusColor = totalCredits < 8 ? "#ffc107" : totalCredits === 22 ? "#dc3545" : "#28a745";
   let creditStatusText = totalCredits < 8 ? "⚠️ น้อยกว่า 8" : totalCredits === 22 ? "⛔ เต็มพิกัด" : "✅ ปกติ";
 
-  if (!user) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
+  // ⚠️ ลบเงื่อนไข if (!user) return <LoginScreen /> ออกแล้ว!
+  // เพื่อให้ render หน้าเว็บได้เลยแม้จะเป็น Guest
 
   return (
     <div style={{ padding: "30px", fontFamily: "sans-serif", maxWidth: "1200px", margin: "0 auto", background: theme.bg, color: theme.text, minHeight: "100vh", transition: "0.3s" }}>
+      
+      {/* 🔐 หน้าต่าง Login จะเด้งขึ้นมาเมื่อ showLoginModal เป็น true */}
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
+
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px", flexWrap: "wrap", gap: "10px"}}>
-        <div><h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1><p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>สวัสดี, <b>{user.username}</b></p></div>
+        <div>
+          <h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1>
+          {/* ปรับข้อความต้อนรับตามสถานะ */}
+          <p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>
+            {user ? <span>สวัสดี, <b>{user.username}</b></span> : <span>สถานะ: <b>Guest Mode</b> (กรุณาล็อกอินเพื่อบันทึกข้อมูล)</span>}
+          </p>
+        </div>
         <div style={{display:"flex", gap:"10px", alignItems:"center"}}>
            <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: "transparent", border: `1px solid ${theme.cardBorder}`, color: theme.text, padding: "10px", borderRadius: "50%", cursor: "pointer", fontSize: "18px", display:"flex", alignItems:"center", justifyContent:"center", width: "45px", height: "45px" }}>
              {isDarkMode ? <FaSun color="#ffc107" /> : <FaMoon color="#6c757d" />}
            </button>
 
           <div style={{ padding: "10px 20px", borderRadius: "8px", background: creditStatusColor, color: totalCredits < 8 ? "#333" : "white", fontWeight: "bold", textAlign: "right", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}><div style={{fontSize:"18px"}}>Total: {totalCredits}</div></div>
+          
           {!isMobile && <button onClick={handleSaveImage} style={{ background: "#007bff", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>📷 Save</button>}
-          <button onClick={handleLogout} style={{ background: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>🚪 Logout</button>
+          
+          {/* 🔥 ปุ่มเปลี่ยนตามสถานะ: ถ้า User มีค่า = Logout / ถ้าไม่มี = Login */}
+          {user ? (
+            <button onClick={handleLogout} style={{ background: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>🚪 Logout</button>
+          ) : (
+            <button onClick={() => setShowLoginModal(true)} style={{ background: "#28a745", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)", fontWeight: "bold" }}>🔑 Login</button>
+          )}
         </div>
       </div>
       
@@ -475,4 +511,3 @@ function App() {
 }
 
 export default App
-
