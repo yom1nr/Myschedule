@@ -135,12 +135,12 @@ const LoginScreen = ({ onLogin }) => {
         return;
       }
 
-      // 4. Login Success (รอ 1.5 วิ ให้เห็น Alert)
+      // 4. Login Success 
       await Swal.fire({
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ',
         text: `ยินดีต้อนรับคุณ ${data.user.username}`,
-        timer: 1500,
+        timer: 5000,
         showConfirmButton: false
       });
 
