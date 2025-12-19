@@ -4,45 +4,25 @@ import { FaUser, FaLock, FaMoon, FaSun, FaClock, FaMapMarkerAlt } from 'react-ic
 import Swal from 'sweetalert2'; 
 
 // ==========================================
-// 🎨 ธีมสี (Theme Config)
+// 🎨 ธีมสี
 // ==========================================
 const themes = {
   light: {
-    bg: "#f8f9fa",
-    text: "#333",
-    cardBg: "white",
-    cardBorder: "#ddd",
-    gridBg: "#ddd",
-    gridHeader: "#333",
-    gridSubHeader: "#444",
-    gridCell: "white",
-    gridText: "#333",
-    inputBg: "white",
-    inputText: "#333",
-    highlight: "#FFF3E0",
-    highlightBorder: "#FF7F00",
+    bg: "#f8f9fa", text: "#333", cardBg: "white", cardBorder: "#ddd",
+    gridBg: "#ddd", gridHeader: "#333", gridSubHeader: "#444", gridCell: "white",
+    inputBg: "white", inputText: "#333", highlight: "#FFF3E0", highlightBorder: "#FF7F00",
     shadow: "0 4px 10px rgba(0,0,0,0.1)"
   },
   dark: {
-    bg: "#121212",
-    text: "#e0e0e0",
-    cardBg: "#1e1e1e",
-    cardBorder: "#333",
-    gridBg: "#333",
-    gridHeader: "#000",
-    gridSubHeader: "#1a1a1a",
-    gridCell: "#2d2d2d",
-    gridText: "#e0e0e0",
-    inputBg: "#2d2d2d",
-    inputText: "#e0e0e0",
-    highlight: "#2a1a00", 
-    highlightBorder: "#b35900",
+    bg: "#121212", text: "#e0e0e0", cardBg: "#1e1e1e", cardBorder: "#333",
+    gridBg: "#333", gridHeader: "#000", gridSubHeader: "#1a1a1a", gridCell: "#2d2d2d",
+    inputBg: "#2d2d2d", inputText: "#e0e0e0", highlight: "#2a1a00", highlightBorder: "#b35900",
     shadow: "0 4px 10px rgba(0,0,0,0.5)"
   }
 };
 
 // ==========================================
-// 🛠️ ส่วนที่ 1: ฟังก์ชัน Utility
+// 🛠️ Utility Functions
 // ==========================================
 const parseSchedule = (timeStr) => {
   if (!timeStr || timeStr === "-" || timeStr === "N" || timeStr === "N/A") return [];
@@ -53,8 +33,7 @@ const parseSchedule = (timeStr) => {
     const key = `${match[1]}-${match[2]}-${match[3]}-${match[4]}-${match[5]}`;
     if (!tempMap[key]) {
       tempMap[key] = {
-        day: match[1],
-        startH: parseInt(match[2]), startM: parseInt(match[3]), endH: parseInt(match[4]), endM: parseInt(match[5]),
+        day: match[1], startH: parseInt(match[2]), startM: parseInt(match[3]), endH: parseInt(match[4]), endM: parseInt(match[5]),
         startTotal: parseInt(match[2]) * 60 + parseInt(match[3]),
         endTotal: parseInt(match[4]) * 60 + parseInt(match[5]),
         rooms: []
@@ -89,10 +68,10 @@ const checkConflict = (newCourse, currentCart) => {
 };
 
 // ==========================================
-// 🧱 ส่วนที่ 2: คอมโพเนนต์ย่อย
+// 🧱 Components
 // ==========================================
 
-// 🔐 LoginScreen (แก้ไขแล้ว: แจ้งเตือนชัดเจน)
+// 🔐 LoginScreen (แก้ไขแล้ว: ใส่ await ให้รอ Alert ก่อนเปลี่ยนหน้า)
 const LoginScreen = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
@@ -103,6 +82,7 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 1. Loading
     Swal.fire({
       title: 'กำลังตรวจสอบ...',
       text: 'กรุณารอสักครู่',
@@ -110,7 +90,7 @@ const LoginScreen = ({ onLogin }) => {
       didOpen: () => { Swal.showLoading() }
     });
 
-    const baseUrl = 'https://myscheduleapi.onrender.com'; 
+    const baseUrl = 'https://myscheduleapi.onrender.com'; // ⚠️ ตรวจสอบ URL
     const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
     const body = { username, password }; 
 
@@ -121,6 +101,7 @@ const LoginScreen = ({ onLogin }) => {
         body: JSON.stringify(body)
       });
 
+      // กัน Error 500 (HTML)
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Server Error (Not JSON)"); 
@@ -128,8 +109,9 @@ const LoginScreen = ({ onLogin }) => {
 
       const data = await res.json();
       
+      // 2. Error
       if (!res.ok) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'error',
           title: 'เกิดข้อผิดพลาด!',
           text: data.message || "การทำรายการล้มเหลว",
@@ -139,9 +121,8 @@ const LoginScreen = ({ onLogin }) => {
         return; 
       }
 
-      // 3. 🟢 กรณี: สมัครสมาชิกสำเร็จ
+      // 3. Register Success
       if (isRegister) {
-        // 🔥 ใส่ await เพื่อรอให้ User กดปุ่ม "ตกลง" ก่อนค่อยเปลี่ยนหน้า
         await Swal.fire({
           icon: 'success',
           title: 'สมัครสมาชิกเรียบร้อย!',
@@ -149,14 +130,12 @@ const LoginScreen = ({ onLogin }) => {
           confirmButtonColor: '#28a745',
           confirmButtonText: 'ตกลง'
         });
-        
-        setIsRegister(false); // เปลี่ยนกลับไปหน้า Login
+        setIsRegister(false);
         setPassword(""); 
         return;
       }
 
-      // 4. 🟢 กรณี: ล็อกอินสำเร็จ
-      // 🔥 ใส่ await เพื่อรอ 1.5 วินาที ให้เห็นข้อความก่อนค่อยพาเข้าหน้าหลัก
+      // 4. Login Success (รอ 1.5 วิ ให้เห็น Alert)
       await Swal.fire({
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ',
@@ -254,7 +233,7 @@ const MobileScheduleList = ({ cart, theme }) => {
   );
 };
 
-// 💻 ScheduleGrid (นี่คือตัวที่หายไป! ผมเอามาใส่คืนให้แล้วครับ)
+// 💻 ScheduleGrid
 const ScheduleGrid = ({ cart, getSection, captureRef, theme }) => {
   const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
   const allSchedules = cart.flatMap(course => parseSchedule(course.time));
@@ -299,7 +278,7 @@ const ScheduleGrid = ({ cart, getSection, captureRef, theme }) => {
 };
 
 // ==========================================
-// 🚀 ส่วนที่ 3: App หลัก
+// 🚀 App Main
 // ==========================================
 function App() {
   const [user, setUser] = useState(null);
@@ -323,7 +302,6 @@ function App() {
     document.body.style.backgroundColor = theme.bg; 
   }, [isDarkMode, theme]);
 
-  // 🔥 จุดแก้: เพิ่มการเช็ค Error และ Data Type ป้องกันจอดำ
   useEffect(() => {
     const apiUrl = 'https://myscheduleapi.onrender.com/api/courses'; 
 
@@ -358,21 +336,18 @@ function App() {
     localStorage.setItem("userToken", token);
   };
 
-  // ✅ แก้ให้เป็น async เพื่อใช้คำสั่ง await ได้
-const handleLogout = async () => {
-  // สั่งให้ Alert เด้ง แล้ว "รอ" จนกว่ามันจะโชว์ครบเวลา (await)
-  await Swal.fire({
-    icon: 'success',
-    title: 'ออกจากระบบแล้ว',
-    timer: 1000,
-    showConfirmButton: false
-  });
-
-  // พอ Alert หายแล้ว ค่อยเคลียร์ค่า user (เปลี่ยนหน้า)
-  setUser(null);
-  setCart([]);
-  localStorage.removeItem("userToken");
-};
+  // 🔥 จุดแก้: Logout (รอ Alert ก่อนออก)
+  const handleLogout = async () => {
+    await Swal.fire({
+      icon: 'success',
+      title: 'ออกจากระบบแล้ว',
+      timer: 1000,
+      showConfirmButton: false
+    });
+    setUser(null);
+    setCart([]);
+    localStorage.removeItem("userToken");
+  };
 
   useEffect(() => {
     if (user && cart.length >= 0) {
