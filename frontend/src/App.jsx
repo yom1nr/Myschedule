@@ -35,7 +35,7 @@ const themes = {
     gridText: "#e0e0e0",
     inputBg: "#2d2d2d",
     inputText: "#e0e0e0",
-    highlight: "#2a1a00", // สีส้มเข้มๆ
+    highlight: "#2a1a00", 
     highlightBorder: "#b35900",
     shadow: "0 4px 10px rgba(0,0,0,0.5)"
   }
@@ -88,9 +88,11 @@ const checkConflict = (newCourse, currentCart) => {
   return { conflict: false };
 };
 
-// ----------------------------------------------------
-// 🔐 LoginScreen (ฉบับแก้ใหม่: เห็น Alert ชัดเจนทุกกรณี)
-// ----------------------------------------------------
+// ==========================================
+// 🧱 ส่วนที่ 2: คอมโพเนนต์ย่อย
+// ==========================================
+
+// 🔐 LoginScreen (แก้ไขแล้ว: แจ้งเตือนชัดเจน)
 const LoginScreen = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
@@ -101,7 +103,6 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. 🟡 ขึ้น Loading ค้างไว้ก่อนเลย
     Swal.fire({
       title: 'กำลังตรวจสอบ...',
       text: 'กรุณารอสักครู่',
@@ -109,7 +110,6 @@ const LoginScreen = ({ onLogin }) => {
       didOpen: () => { Swal.showLoading() }
     });
 
-    // ⚠️ เช็ค URL ให้ชัวร์ (ห้ามมี / ปิดท้าย)
     const baseUrl = 'https://myscheduleapi.onrender.com'; 
     const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
     const body = { username, password }; 
@@ -121,15 +121,13 @@ const LoginScreen = ({ onLogin }) => {
         body: JSON.stringify(body)
       });
 
-      // 🔥 ดักจับกรณี Server พัง (ส่ง HTML กลับมาแทน JSON)
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server Error (Not JSON)"); // โยนไปเข้า catch ด้านล่าง
+        throw new Error("Server Error (Not JSON)"); 
       }
 
       const data = await res.json();
       
-      // 2. 🔴 กรณี: รหัสผิด / สมัครซ้ำ / Error จาก Backend
       if (!res.ok) {
         Swal.fire({
           icon: 'error',
@@ -141,7 +139,6 @@ const LoginScreen = ({ onLogin }) => {
         return; 
       }
 
-      // 3. 🟢 กรณี: สมัครสมาชิกสำเร็จ
       if (isRegister) {
         Swal.fire({
           icon: 'success',
@@ -151,12 +148,10 @@ const LoginScreen = ({ onLogin }) => {
           confirmButtonText: 'ตกลง'
         });
         setIsRegister(false);
-        setPassword(""); // เคลียร์รหัสผ่าน
+        setPassword(""); 
         return;
       }
 
-      // 4. 🟢 กรณี: ล็อกอินสำเร็จ (User ขอให้เด้งบอกก่อนเข้า)
-      // ใช้ await เพื่อรอให้ User เห็น Alert ก่อน 1.5 วิ แล้วค่อยไปต่อ
       await Swal.fire({
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ',
@@ -165,12 +160,10 @@ const LoginScreen = ({ onLogin }) => {
         showConfirmButton: false
       });
 
-      // จังหวะนี้ค่อยเปลี่ยนหน้า
       onLogin(data.user, data.token);
 
     } catch (err) {
       console.error(err);
-      // 5. 🔌 กรณี: เน็ตหลุด / Server ยังไม่ตื่น / Backend พัง
       Swal.fire({
         icon: 'error',
         title: 'ติดต่อ Server ไม่ได้',
@@ -208,6 +201,98 @@ const LoginScreen = ({ onLogin }) => {
   );
 };
 
+// 📱 MobileScheduleList
+const MobileScheduleList = ({ cart, theme }) => {
+  const daysOrder = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  const fullDays = { 'Mo': 'วันจันทร์', 'Tu': 'วันอังคาร', 'We': 'วันพุธ', 'Th': 'วันพฤหัสบดี', 'Fr': 'วันศุกร์', 'Sa': 'วันเสาร์', 'Su': 'วันอาทิตย์' };
+  
+  const scheduleByDay = {};
+  cart.forEach(course => {
+    const schedules = parseSchedule(course.time);
+    schedules.forEach(sch => {
+      if (!scheduleByDay[sch.day]) scheduleByDay[sch.day] = [];
+      scheduleByDay[sch.day].push({ ...sch, course });
+    });
+  });
+
+  Object.keys(scheduleByDay).forEach(day => {
+    scheduleByDay[day].sort((a, b) => a.startTotal - b.startTotal);
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "15px", marginBottom: "20px" }}>
+      {daysOrder.map(day => {
+        if (!scheduleByDay[day]) return null;
+        return (
+          <div key={day} style={{ background: theme.cardBg, borderRadius: "10px", padding: "15px", border: `1px solid ${theme.cardBorder}`, boxShadow: theme.shadow }}>
+            <h3 style={{ margin: "0 0 10px 0", color: "#FF7F00", borderBottom: `1px solid ${theme.cardBorder}`, paddingBottom: "5px" }}>
+              {fullDays[day]}
+            </h3>
+            {scheduleByDay[day].map((item, idx) => (
+              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: "10px", color: theme.text }}>
+                <div style={{ background: "#007bff", width: "4px", height: "40px", borderRadius: "2px", flexShrink: 0 }}></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: "bold", fontSize: "16px" }}>{item.course.code}</div>
+                  <div style={{ fontSize: "14px", opacity: 0.8 }}>{item.course.name}</div>
+                  <div style={{ display: "flex", gap: "15px", marginTop: "5px", fontSize: "13px", color: theme.text, opacity: 0.7 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}><FaClock /> {item.startH}:{item.startM.toString().padStart(2,'0')} - {item.endH}:{item.endM.toString().padStart(2,'0')}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}><FaMapMarkerAlt /> {item.room}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      })}
+      {cart.length === 0 && <div style={{ textAlign: "center", color: theme.text, padding: "20px" }}>ยังไม่มีวิชาเรียน</div>}
+    </div>
+  );
+};
+
+// 💻 ScheduleGrid (นี่คือตัวที่หายไป! ผมเอามาใส่คืนให้แล้วครับ)
+const ScheduleGrid = ({ cart, getSection, captureRef, theme }) => {
+  const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  const allSchedules = cart.flatMap(course => parseSchedule(course.time));
+  let minStart = 8; let maxEnd = 18;
+  if (allSchedules.length > 0) {
+    const startTimes = allSchedules.map(s => s.startH);
+    const endTimes = allSchedules.map(s => s.endH);
+    minStart = Math.min(...startTimes, 8);
+    maxEnd = Math.max(...endTimes, 18);
+  }
+  const startHour = minStart; const endHour = maxEnd; 
+  const totalHours = endHour - startHour + 1;
+  const timeHeaders = Array.from({ length: totalHours }, (_, i) => startHour + i);
+
+  return (
+    <div ref={captureRef} style={{ margin: "20px 0", width: "100%", background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", boxShadow: theme.shadow, padding: "10px", boxSizing: "border-box", overflow: "hidden" }}>
+      <div style={{ display: "grid", gap: "1px", background: theme.gridBg, border: `1px solid ${theme.gridBg}`, gridTemplateColumns: `80px repeat(${totalHours * 2}, 1fr)`, gridTemplateRows: "50px repeat(7, 60px)", width: "100%" }}>
+        <div style={{ background: theme.gridHeader, color: "white", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:"bold" }}>Day / Time</div>
+        {timeHeaders.map(t => (<div key={t} style={{ gridColumn: "span 2", background: theme.gridSubHeader, color: "white", display:"flex", alignItems:"center", justifyContent:"center", fontSize: "11px", fontWeight:"500", whiteSpace: "nowrap" }}>{t.toString().padStart(2, '0')}:00 - {(t + 1).toString().padStart(2, '0')}:00</div>))}
+        {days.map((day, rowIndex) => (<><div key={day} style={{ background: "#FF7F00", color: "white", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gridColumn: "1 / 2", gridRow: `${rowIndex + 2} / ${rowIndex + 3}` }}>{day}</div>{Array.from({ length: totalHours * 2 }).map((_, colIndex) => (<div key={`${day}-${colIndex}`} style={{ background: theme.gridCell, gridColumn: `${colIndex + 2} / ${colIndex + 3}`, gridRow: `${rowIndex + 2} / ${rowIndex + 3}` }}></div>))}</>))}
+        {cart.map((course, index) => {
+          const schedules = parseSchedule(course.time);
+          const colors = ["#FF5733", "#28A745", "#007BFF", "#E83E8C", "#17A2B8", "#FD7E14"];
+          return schedules.map((sch, i) => {
+            const rowStart = days.indexOf(sch.day) + 2;
+            const startSlot = (sch.startH - startHour) * 2 + (sch.startM >= 30 ? 1 : 0);
+            const endSlot = (sch.endH - startHour) * 2 + (sch.endM >= 30 ? 1 : 0);
+            const colStart = startSlot + 2; const colEnd = endSlot + 2;
+            if (rowStart < 2 || colStart < 2) return null;
+            return (
+              <div key={`${course.code}-${i}`} style={{ gridRow: `${rowStart} / ${rowStart + 1}`, gridColumn: `${colStart} / ${colEnd}`, background: colors[index % colors.length], color: "white", margin: "1px", borderRadius: "4px", padding: "2px", zIndex: 10, fontSize: "10px", overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", lineHeight: "1.2", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} title={`${course.code} ${course.name} Room: ${sch.room}`}>
+                <div style={{fontWeight:"bold", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%"}}>{course.code}</div>
+                <div style={{opacity:0.9, whiteSpace:"nowrap"}}>Sec {getSection(course)}</div>
+                <div style={{whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%"}}>📍 {sch.room}</div>
+              </div>
+            )
+          });
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ==========================================
 // 🚀 ส่วนที่ 3: App หลัก
 // ==========================================
@@ -216,30 +301,50 @@ function App() {
   const [courses, setCourses] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [cart, setCart] = useState([]);
-  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("theme") === "dark"); // 🌗 โหลดธีมเก่า
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // 📱 เช็กขนาดจอ
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("theme") === "dark"); 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); 
   const scheduleRef = useRef(null);
 
-  const theme = isDarkMode ? themes.dark : themes.light; // เลือกชุดสีตามโหมด
+  const theme = isDarkMode ? themes.dark : themes.light; 
 
-  // Listener สำหรับเช็กขนาดจอ (เมื่อย่อ/ขยายหน้าต่าง)
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // บันทึกธีมลงเครื่อง
   useEffect(() => {
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-    document.body.style.backgroundColor = theme.bg; // เปลี่ยนสีพื้นหลัง body จริงๆ
+    document.body.style.backgroundColor = theme.bg; 
   }, [isDarkMode, theme]);
 
+  // 🔥 จุดแก้: เพิ่มการเช็ค Error และ Data Type ป้องกันจอดำ
   useEffect(() => {
-    fetch('https://myscheduleapi.onrender.com/api/courses').then(res => res.json()).then(rawCourses => {
-        const cleanCourses = rawCourses.map(c => ({ _id: c._id, code: c.code || c.Code || c.CODE || "N/A", name: c.name || c.Name || c.NAME || "Unknown Course", credit: parseInt(c.credit || c.Credit || c.CREDIT || 0), time: c.time || c.Time || c.TIME || "-" }));
+    const apiUrl = 'https://myscheduleapi.onrender.com/api/courses'; 
+
+    fetch(apiUrl)
+      .then(res => {
+         if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+         return res.json();
+      })
+      .then(rawCourses => {
+        if (!Array.isArray(rawCourses)) {
+           console.error("Data is not an array:", rawCourses);
+           setCourses([]); 
+           return;
+        }
+        const cleanCourses = rawCourses.map(c => ({ 
+            _id: c._id, 
+            code: c.code || c.Code || c.CODE || "N/A", 
+            name: c.name || c.Name || c.NAME || "Unknown Course", 
+            credit: parseInt(c.credit || c.Credit || c.CREDIT || 0), 
+            time: c.time || c.Time || c.TIME || "-" 
+        }));
         setCourses(cleanCourses);
-      }).catch(err => console.error("Error loading courses:", err));
+      })
+      .catch(err => {
+          console.error("Error loading courses:", err);
+      });
   }, []);
 
   const handleLogin = (userData, token) => {
@@ -324,28 +429,24 @@ function App() {
   return (
     <div style={{ padding: "30px", fontFamily: "sans-serif", maxWidth: "1200px", margin: "0 auto", background: theme.bg, color: theme.text, minHeight: "100vh", transition: "0.3s" }}>
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px", flexWrap: "wrap", gap: "10px"}}>
-        <div><h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1><p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>Welcome, <b>{user.username}</b></p></div>
+        <div><h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1><p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>สวัสดี, <b>{user.username}</b></p></div>
         <div style={{display:"flex", gap:"10px", alignItems:"center"}}>
-           {/* ปุ่มสลับธีม */}
            <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: "transparent", border: `1px solid ${theme.cardBorder}`, color: theme.text, padding: "10px", borderRadius: "50%", cursor: "pointer", fontSize: "18px", display:"flex", alignItems:"center", justifyContent:"center", width: "45px", height: "45px" }}>
              {isDarkMode ? <FaSun color="#ffc107" /> : <FaMoon color="#6c757d" />}
            </button>
 
           <div style={{ padding: "10px 20px", borderRadius: "8px", background: creditStatusColor, color: totalCredits < 8 ? "#333" : "white", fontWeight: "bold", textAlign: "right", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}><div style={{fontSize:"18px"}}>Total: {totalCredits}</div></div>
-          {/* ซ่อนปุ่ม Save ในมือถือเพราะ Grid มันหายไป */}
           {!isMobile && <button onClick={handleSaveImage} style={{ background: "#007bff", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>📷 Save</button>}
           <button onClick={handleLogout} style={{ background: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>🚪 Logout</button>
         </div>
       </div>
       
-      {/* 📱 เงื่อนไข: ถ้าเป็นมือถือ (isMobile) ให้โชว์ MobileScheduleList ถ้าไม่ใช่ ให้โชว์ Grid */}
       {isMobile ? (
         <MobileScheduleList cart={cart} theme={theme} />
       ) : (
         <ScheduleGrid cart={cart} getSection={getSection} captureRef={scheduleRef} theme={theme} />
       )}
 
-      {/* กล่องรายวิชาด้านล่าง (ปรับสีตามธีม) */}
       <div style={{ background: theme.highlight, padding: "20px", borderRadius: "10px", marginBottom: "30px", border: `2px dashed ${theme.highlightBorder}` }}>
         <h3 style={{ margin: "0 0 15px 0", color: isDarkMode ? "#ffbb33" : "#E65100" }}>🎒 วิชาที่เลือก ({cart.length})</h3>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
@@ -361,7 +462,6 @@ function App() {
 
       <input type="text" placeholder="🔎 ค้นหา..." value={searchText} onChange={(e) => setSearchText(e.target.value)} style={{ width: "100%", padding: "12px", marginBottom: "20px", fontSize: "16px", border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", background: theme.inputBg, color: theme.inputText }} />
       
-      {/* ตารางค้นหา (Table) */}
       <div style={{ height: "400px", overflowY: "auto", border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", background: theme.cardBg }}>
         <table style={{ width: "100%", borderCollapse: "collapse", color: theme.text }}>
           <thead style={{ position: "sticky", top: 0, background: "#FF7F00", color: "white" }}><tr><th style={{padding:"12px"}}>รหัส</th><th style={{padding:"12px"}}>ชื่อ</th><th style={{padding:"12px"}}>หน่วยกิต</th><th style={{padding:"12px"}}>Sec</th><th style={{padding:"12px"}}>เวลา</th><th style={{padding:"12px"}}></th></tr></thead>
@@ -383,4 +483,4 @@ function App() {
   );
 }
 
-export default App;
+export default App
