@@ -71,7 +71,9 @@ const checkConflict = (newCourse, currentCart) => {
 // 🧱 Components
 // ==========================================
 
-// 🔐 LoginScreen (แก้ไขแล้ว: ใส่ await ให้รอ Alert ก่อนเปลี่ยนหน้า)
+// ----------------------------------------------------
+// 🔐 LoginScreen (ฉบับแก้จบ: บังคับโชว์ Alert ก่อนเข้า)
+// ----------------------------------------------------
 const LoginScreen = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
@@ -82,7 +84,7 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Loading
+    // 1. 🟡 หมุนติ้วๆ ก่อนเลย
     Swal.fire({
       title: 'กำลังตรวจสอบ...',
       text: 'กรุณารอสักครู่',
@@ -90,7 +92,7 @@ const LoginScreen = ({ onLogin }) => {
       didOpen: () => { Swal.showLoading() }
     });
 
-    const baseUrl = 'https://myscheduleapi.onrender.com'; // ⚠️ ตรวจสอบ URL
+    const baseUrl = 'https://myscheduleapi.onrender.com'; // ⚠️ URL ต้องเป๊ะ
     const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
     const body = { username, password }; 
 
@@ -101,7 +103,7 @@ const LoginScreen = ({ onLogin }) => {
         body: JSON.stringify(body)
       });
 
-      // กัน Error 500 (HTML)
+      // เช็คว่า Server ส่ง HTML (Error 500) มาแทน JSON หรือเปล่า
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Server Error (Not JSON)"); 
@@ -109,20 +111,21 @@ const LoginScreen = ({ onLogin }) => {
 
       const data = await res.json();
       
-      // 2. Error
+      // 2. 🔴 กรณี: รหัสผิด / มี User นี้แล้ว / Error
       if (!res.ok) {
         await Swal.fire({
           icon: 'error',
           title: 'เกิดข้อผิดพลาด!',
-          text: data.message || "การทำรายการล้มเหลว",
+          text: data.message || "Username หรือ Password ไม่ถูกต้อง",
           confirmButtonColor: '#d33',
           confirmButtonText: 'ลองใหม่'
         });
-        return; 
+        return; // หยุดทำงาน ไม่ไปต่อ
       }
 
-      // 3. Register Success
+      // 3. 🟢 กรณี: สมัครสมาชิกสำเร็จ (Register)
       if (isRegister) {
+        // บังคับให้กดปุ่ม OK ก่อน ถึงจะเปลี่ยนหน้า
         await Swal.fire({
           icon: 'success',
           title: 'สมัครสมาชิกเรียบร้อย!',
@@ -130,24 +133,32 @@ const LoginScreen = ({ onLogin }) => {
           confirmButtonColor: '#28a745',
           confirmButtonText: 'ตกลง'
         });
-        setIsRegister(false);
+        
+        setIsRegister(false); // สลับไปหน้า Login
         setPassword(""); 
         return;
       }
 
-      // 4. Login Success 
+      // 4. 🟢 กรณี: ล็อกอินสำเร็จ (Login)
+      // 🔥 ไฮไลท์สำคัญ: ต้องมี await และ timerProgressBar
       await Swal.fire({
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ',
         text: `ยินดีต้อนรับคุณ ${data.user.username}`,
-        timer: 5000,
-        showConfirmButton: false
+        timer: 2000, // ⏳ รอ 2 วินาที (นานขึ้นหน่อยให้เห็นชัด)
+        timerProgressBar: true, // โชว์หลอดเวลาวิ่งๆ
+        showConfirmButton: false,
+        willClose: () => {
+          // ฟังก์ชันนี้จะทำงานตอน Alert กำลังปิด (กันพลาด)
+        }
       });
 
+      // ✅ Alert ปิดแล้วค่อยสั่งเปลี่ยนหน้า
       onLogin(data.user, data.token);
 
     } catch (err) {
       console.error(err);
+      // 5. 🔌 กรณี: เน็ตหลุด / Server ยังไม่ตื่น
       Swal.fire({
         icon: 'error',
         title: 'ติดต่อ Server ไม่ได้',
