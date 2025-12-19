@@ -71,9 +71,7 @@ const checkConflict = (newCourse, currentCart) => {
 // 🧱 Components
 // ==========================================
 
-// ----------------------------------------------------
-// 🔐 LoginScreen (ฉบับแก้จบ: บังคับโชว์ Alert ก่อนเข้า)
-// ----------------------------------------------------
+// 🔐 LoginScreen (เพิ่ม CSS Fix Z-Index แล้ว!)
 const LoginScreen = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
@@ -84,7 +82,7 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. 🟡 หมุนติ้วๆ ก่อนเลย
+    // 1. Loading
     Swal.fire({
       title: 'กำลังตรวจสอบ...',
       text: 'กรุณารอสักครู่',
@@ -92,7 +90,7 @@ const LoginScreen = ({ onLogin }) => {
       didOpen: () => { Swal.showLoading() }
     });
 
-    const baseUrl = 'https://myscheduleapi.onrender.com'; // ⚠️ URL ต้องเป๊ะ
+    const baseUrl = 'https://myscheduleapi.onrender.com';
     const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
     const body = { username, password }; 
 
@@ -103,7 +101,6 @@ const LoginScreen = ({ onLogin }) => {
         body: JSON.stringify(body)
       });
 
-      // เช็คว่า Server ส่ง HTML (Error 500) มาแทน JSON หรือเปล่า
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Server Error (Not JSON)"); 
@@ -111,21 +108,20 @@ const LoginScreen = ({ onLogin }) => {
 
       const data = await res.json();
       
-      // 2. 🔴 กรณี: รหัสผิด / มี User นี้แล้ว / Error
+      // 2. Error
       if (!res.ok) {
         await Swal.fire({
           icon: 'error',
           title: 'เกิดข้อผิดพลาด!',
-          text: data.message || "Username หรือ Password ไม่ถูกต้อง",
+          text: data.message || "การทำรายการล้มเหลว",
           confirmButtonColor: '#d33',
           confirmButtonText: 'ลองใหม่'
         });
-        return; // หยุดทำงาน ไม่ไปต่อ
+        return; 
       }
 
-      // 3. 🟢 กรณี: สมัครสมาชิกสำเร็จ (Register)
+      // 3. Register Success
       if (isRegister) {
-        // บังคับให้กดปุ่ม OK ก่อน ถึงจะเปลี่ยนหน้า
         await Swal.fire({
           icon: 'success',
           title: 'สมัครสมาชิกเรียบร้อย!',
@@ -133,32 +129,25 @@ const LoginScreen = ({ onLogin }) => {
           confirmButtonColor: '#28a745',
           confirmButtonText: 'ตกลง'
         });
-        
-        setIsRegister(false); // สลับไปหน้า Login
+        setIsRegister(false);
         setPassword(""); 
         return;
       }
 
-      // 4. 🟢 กรณี: ล็อกอินสำเร็จ (Login)
-      // 🔥 ไฮไลท์สำคัญ: ต้องมี await และ timerProgressBar
+      // 4. Login Success (รอ 2 วิ + มีหลอดเวลา)
       await Swal.fire({
         icon: 'success',
         title: 'เข้าสู่ระบบสำเร็จ',
         text: `ยินดีต้อนรับคุณ ${data.user.username}`,
-        timer: 2000, // ⏳ รอ 2 วินาที (นานขึ้นหน่อยให้เห็นชัด)
-        timerProgressBar: true, // โชว์หลอดเวลาวิ่งๆ
-        showConfirmButton: false,
-        willClose: () => {
-          // ฟังก์ชันนี้จะทำงานตอน Alert กำลังปิด (กันพลาด)
-        }
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false
       });
 
-      // ✅ Alert ปิดแล้วค่อยสั่งเปลี่ยนหน้า
       onLogin(data.user, data.token);
 
     } catch (err) {
       console.error(err);
-      // 5. 🔌 กรณี: เน็ตหลุด / Server ยังไม่ตื่น
       Swal.fire({
         icon: 'error',
         title: 'ติดต่อ Server ไม่ได้',
@@ -182,6 +171,9 @@ const LoginScreen = ({ onLogin }) => {
 
   return (
     <div style={styles.container}>
+      {/* 🔥 เพิ่ม CSS บรรทัดนี้เพื่อบังคับให้ Alert เด้งทะลุ LoginScreen ขึ้นมา */}
+      <style>{`.swal2-container { z-index: 20000 !important; }`}</style>
+      
       <div style={styles.glassBox}>
         <h2 style={{ marginBottom: "30px", fontWeight: "bold" }}>{isRegister ? "Register" : "Login"}</h2>
         <form onSubmit={handleSubmit}>
@@ -347,7 +339,6 @@ function App() {
     localStorage.setItem("userToken", token);
   };
 
-  // 🔥 จุดแก้: Logout (รอ Alert ก่อนออก)
   const handleLogout = async () => {
     await Swal.fire({
       icon: 'success',
@@ -484,3 +475,4 @@ function App() {
 }
 
 export default App
+
