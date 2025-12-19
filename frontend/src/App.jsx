@@ -89,43 +89,77 @@ const checkConflict = (newCourse, currentCart) => {
 };
 
 // ==========================================
-// 🧱 ส่วนที่ 2: คอมโพเนนต์ย่อย
-// ==========================================
-
+// ----------------------------------------------------
+// 🔐 คอมโพเนนต์ LoginScreen (ฉบับแก้ Logic ให้แจ้งเตือนทันที)
+// ----------------------------------------------------
 const LoginScreen = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  
   const backgroundUrl = "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isRegister ? '/api/register' : '/api/login';
+
+    // 1. 🔥 ขึ้น Loading หมุนๆ ก่อนเลย (กัน User กดรัว + บอกว่ากำลังทำงาน)
+    Swal.fire({
+      title: 'กำลังตรวจสอบ...',
+      text: 'กรุณารอสักครู่',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading() } // สั่งให้หมุน
+    });
+
+    const endpoint = isRegister ? 'https://myscheduleapi.onrender.com/api/register' : 'https://myscheduleapi.onrender.com/api/login';
+    // ⚠️ เช็ค URL ของคุณให้ดีว่าไม่มี / ปิดท้าย และเป็น https
+    
     const body = { username, password }; 
 
     try {
-      const res = await fetch(`https://myscheduleapi.onrender.com${endpoint}`, {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       const data = await res.json();
       
+      // 2. ⛔ ถ้า Login ไม่ผ่าน (เช่น รหัสผิด, User ไม่มี)
       if (!res.ok) {
-        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: data.message || "เกิดข้อผิดพลาด", confirmButtonColor: '#d33' });
-        return;
+        Swal.fire({
+          icon: 'error',
+          title: 'เข้าสู่ระบบไม่สำเร็จ',
+          text: data.message || "Username หรือ Password ไม่ถูกต้อง",
+          confirmButtonColor: '#d33',
+          confirmButtonText: 'ลองใหม่'
+        });
+        return; // ⛔ จบการทำงานตรงนี้เลย ไม่ไปต่อ
       }
 
+      // 3. ✅ ถ้าผ่านฉลุย
       if (isRegister) {
-        Swal.fire({ icon: 'success', title: 'สมัครสมาชิกสำเร็จ!', text: 'กรุณาล็อกอิน', confirmButtonColor: '#28a745' });
+        Swal.fire({
+          icon: 'success',
+          title: 'สมัครสมาชิกสำเร็จ!',
+          text: 'กรุณาล็อกอินเพื่อใช้งาน',
+          confirmButtonColor: '#28a745'
+        });
         setIsRegister(false);
         setPassword("");
       } else {
-        onLogin(data.user, data.token);
+        // ปิด Loading แล้วค่อยพาเข้าหน้าหลัก
+        Swal.close(); 
+        onLogin(data.user, data.token); // 🚀 พาเข้า Dashboard ตรงนี้จุดเดียว
       }
+
     } catch (err) {
       console.error(err);
-      Swal.fire({ icon: 'error', title: 'Server Error', text: "ติดต่อ Server ไม่ได้" });
+      // 4. 🔌 ถ้าติดต่อ Server ไม่ได้ (เน็ตหลุด / Server ยังไม่ตื่น)
+      Swal.fire({
+        icon: 'error',
+        title: 'ติดต่อ Server ไม่ได้',
+        text: 'Server อาจจะกำลังตื่น (รอ 1 นาที) หรือเช็กอินเทอร์เน็ตของคุณ',
+        confirmButtonColor: '#d33'
+      });
     }
   };
 
@@ -367,7 +401,7 @@ function App() {
   return (
     <div style={{ padding: "30px", fontFamily: "sans-serif", maxWidth: "1200px", margin: "0 auto", background: theme.bg, color: theme.text, minHeight: "100vh", transition: "0.3s" }}>
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px", flexWrap: "wrap", gap: "10px"}}>
-        <div><h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1><p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>สวัสดี, <b>{user.username}</b></p></div>
+        <div><h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1><p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>Welcome, <b>{user.username}</b></p></div>
         <div style={{display:"flex", gap:"10px", alignItems:"center"}}>
            {/* ปุ่มสลับธีม */}
            <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: "transparent", border: `1px solid ${theme.cardBorder}`, color: theme.text, padding: "10px", borderRadius: "50%", cursor: "pointer", fontSize: "18px", display:"flex", alignItems:"center", justifyContent:"center", width: "45px", height: "45px" }}>
