@@ -21,16 +21,15 @@ function App() {
 
   const theme = isDarkMode ? themes.dark : themes.light;
 
-  // 🔄 1. Persistent Login Logic (แก้ปัญหา Refresh แล้วหลุด)
+  // 🔄 1. Persistent Login Logic
   useEffect(() => {
-    // เช็คว่ามีข้อมูล User เก็บไว้ใน LocalStorage หรือไม่
     const storedUser = localStorage.getItem("userProfile");
     const storedToken = localStorage.getItem("userToken");
     
     if (storedUser && storedToken) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      setCart(parsedUser.mySchedule || []); // คืนค่าตารางเรียนเก่าด้วย
+      setCart(parsedUser.mySchedule || []);
     }
   }, []);
 
@@ -69,7 +68,6 @@ function App() {
     setCart(userData.mySchedule || []);
     setShowLoginModal(false);
     
-    // 🔥 Save to LocalStorage
     localStorage.setItem("userToken", token);
     localStorage.setItem("userProfile", JSON.stringify(userData));
   };
@@ -86,7 +84,7 @@ function App() {
         setUser(null);
         setCart([]);
         localStorage.removeItem("userToken");
-        localStorage.removeItem("userProfile"); // ลบข้อมูลถาวร
+        localStorage.removeItem("userProfile");
       }
     });
   };
@@ -100,13 +98,12 @@ function App() {
         body: JSON.stringify({ username: user.username, cart: cart })
       }).catch(err => console.error("Save failed", err));
       
-      // Update LocalStorage Realtime เพื่อให้ refresh แล้วข้อมูลล่าสุดยังอยู่
       const updatedUser = { ...user, mySchedule: cart };
       localStorage.setItem("userProfile", JSON.stringify(updatedUser));
-      setUser(updatedUser); // Update State user เพื่อให้ consistency
+      setUser(updatedUser);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart]); // ระวัง Loop: ถ้า setUser ในนี้ต้องระวัง แต่กรณีนี้อัพเดทเฉพาะ field
+  }, [cart]);
 
   const getSection = (course) => courses.filter(c => c.code === course.code).findIndex(c => c._id === course._id) + 1;
   const totalCredits = cart.reduce((sum, c) => sum + c.credit, 0);
@@ -215,12 +212,32 @@ function App() {
          />
       </div>
 
-      <div className="course-table-container card" style={{ padding: 0 }}>
+      {/* ✅ MOBILE VIEW: แสดงแบบการ์ด (ซ่อนถ้าไม่ใช่จอมือถือ) */}
+      <div className="mobile-only mobile-course-list">
+        {filtered.slice(0, 50).map(c => (
+          <div key={c._id} className="course-card">
+            <div className="course-header">
+              <span className="course-code">{c.code}</span>
+              <span className="course-credit">{c.credit} Cr.</span>
+            </div>
+            <div className="course-name">{c.name}</div>
+            <div className="course-time">
+              🕒 {c.time} <span style={{marginLeft:10}}>Sec {getSection(c)}</span>
+            </div>
+            <button className="add-btn-mobile" onClick={() => addToCart(c)}>
+              <FaPlus />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* ✅ DESKTOP VIEW: แสดงแบบตาราง (ซ่อนถ้าเป็นจอมือถือ) */}
+      <div className="desktop-table course-table-container card" style={{ padding: 0, marginTop: 20 }}>
         <table className="modern-table">
           <thead>
             <tr>
-              <th>รหัส</th>
-              <th>ชื่อวิชา</th>
+              <th style={{width: '15%'}}>รหัส</th>
+              <th style={{width: '40%'}}>ชื่อวิชา</th>
               <th style={{textAlign:"center"}}>หน่วยกิต</th>
               <th style={{textAlign:"center"}}>Sec</th>
               <th>เวลา</th>
@@ -236,7 +253,9 @@ function App() {
                 <td style={{ textAlign: "center" }}>{getSection(c)}</td>
                 <td style={{ fontSize: "13px", opacity: 0.8 }}>{c.time}</td>
                 <td style={{ textAlign: "center" }}>
-                   <button className="btn btn-success" style={{ padding: "5px 10px", borderRadius: "8px" }} onClick={() => addToCart(c)}><FaPlus /></button>
+                   <button className="btn btn-success" style={{ padding: "6px 12px", width: "auto" }} onClick={() => addToCart(c)}>
+                     <FaPlus /> เพิ่ม
+                   </button>
                 </td>
               </tr>
             ))}
