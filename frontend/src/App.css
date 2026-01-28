@@ -1,13 +1,128 @@
-/* ล้างค่า Default ของ Browser */
-body, html {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden; /* กันเลื่อนซ้ายขวา */
-  font-family: sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
+
+:root {
+  --primary: #FF7F00;
+  --primary-hover: #e66a00;
+  --bg-light: #f4f6f9;
+  --bg-dark: #121212;
+  --card-light: #ffffff;
+  --card-dark: #1e1e1e;
+  --text-light: #333;
+  --text-dark: #e0e0e0;
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 }
 
-* {
-  box-sizing: border-box;
+body {
+  font-family: 'Prompt', sans-serif;
+  margin: 0;
+  transition: background 0.3s ease;
+}
+
+/* Container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+/* Buttons */
+.btn {
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Prompt', sans-serif;
+}
+
+.btn:active { transform: scale(0.95); }
+.btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(255, 127, 0, 0.3); }
+.btn-success { background: #28a745; color: white; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
+.btn-danger { background: #ff4d4d; color: white; }
+.btn-secondary { background: #6c757d; color: white; }
+.btn-icon { padding: 10px; border-radius: 50%; width: 45px; height: 45px; justify-content: center; }
+
+/* Cards & Glassmorphism */
+.card {
+  background: var(--card-light);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: background 0.3s, color 0.3s;
+}
+
+.dark-mode .card {
+  background: var(--card-dark);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Table Modernization */
+.course-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.modern-table th {
+  background: var(--primary);
+  color: white;
+  padding: 15px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.modern-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.dark-mode .modern-table td { border-bottom: 1px solid #333; }
+.modern-table tr:hover { background-color: rgba(0,0,0,0.02); }
+.dark-mode .modern-table tr:hover { background-color: rgba(255,255,255,0.05); }
+
+/* Inputs */
+.search-input {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: #e9ecef;
+  font-size: 16px;
+  outline: none;
+  transition: 0.3s;
+}
+.search-input:focus {
+  background: white;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(255, 127, 0, 0.1);
+}
+.dark-mode .search-input {
+  background: #2d2d2d;
+  color: white;
+}
+.dark-mode .search-input:focus {
+  background: #333;
+}
+
+/* Tags */
+.tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
 }

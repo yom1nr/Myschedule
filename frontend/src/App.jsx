@@ -1,506 +1,243 @@
-import { useState, useEffect, useRef } from 'react'
-import html2canvas from 'html2canvas'
-import { FaUser, FaLock, FaMoon, FaSun, FaClock, FaMapMarkerAlt, FaTimes } from 'react-icons/fa'; 
-import Swal from 'sweetalert2'; 
+import React, { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import Swal from 'sweetalert2';
+import { FaUser, FaSignOutAlt, FaMoon, FaSun, FaCamera, FaPlus, FaTimes } from 'react-icons/fa';
 
-// ==========================================
-// 🎨 ธีมสี
-// ==========================================
-const themes = {
-  light: {
-    bg: "#f8f9fa", text: "#333", cardBg: "white", cardBorder: "#ddd",
-    gridBg: "#ddd", gridHeader: "#333", gridSubHeader: "#444", gridCell: "white",
-    inputBg: "white", inputText: "#333", highlight: "#FFF3E0", highlightBorder: "#FF7F00",
-    shadow: "0 4px 10px rgba(0,0,0,0.1)"
-  },
-  dark: {
-    bg: "#121212", text: "#e0e0e0", cardBg: "#1e1e1e", cardBorder: "#333",
-    gridBg: "#333", gridHeader: "#000", gridSubHeader: "#1a1a1a", gridCell: "#2d2d2d",
-    inputBg: "#2d2d2d", inputText: "#e0e0e0", highlight: "#2a1a00", highlightBorder: "#b35900",
-    shadow: "0 4px 10px rgba(0,0,0,0.5)"
-  }
-};
+// Imports from Separated Files
+import './App.css';
+import { checkConflict, themes } from './utils';
+import LoginModal from './components/LoginModal';
+import ScheduleGrid from './components/ScheduleGrid';
 
-// ==========================================
-// 🛠️ Utility Functions
-// ==========================================
-const parseSchedule = (timeStr) => {
-  if (!timeStr || timeStr === "-" || timeStr === "N" || timeStr === "N/A") return [];
-  const regex = /([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})-(\d{2})[:.](\d{2})(?:\s+([^\s]+))?/g;
-  let tempMap = {}; 
-  let match;
-  while ((match = regex.exec(timeStr)) !== null) {
-    const key = `${match[1]}-${match[2]}-${match[3]}-${match[4]}-${match[5]}`;
-    if (!tempMap[key]) {
-      tempMap[key] = {
-        day: match[1], startH: parseInt(match[2]), startM: parseInt(match[3]), endH: parseInt(match[4]), endM: parseInt(match[5]),
-        startTotal: parseInt(match[2]) * 60 + parseInt(match[3]),
-        endTotal: parseInt(match[4]) * 60 + parseInt(match[5]),
-        rooms: []
-      };
-    }
-    if (match[6]) tempMap[key].rooms.push(match[6]);
-  }
-  return Object.values(tempMap).map(item => ({
-    ...item,
-    room: item.rooms.length > 0 ? [...new Set(item.rooms)].join(", ") : "-"
-  }));
-};
-
-const checkConflict = (newCourse, currentCart) => {
-  const newSchedules = parseSchedule(newCourse.time);
-  for (let cartItem of currentCart) {
-    const existingSchedules = parseSchedule(cartItem.time);
-    for (let newSch of newSchedules) {
-      for (let existSch of existingSchedules) {
-        if (newSch.day === existSch.day) {
-          if (newSch.startTotal < existSch.endTotal && newSch.endTotal > existSch.startTotal) {
-            return {
-              conflict: true,
-              detail: `ชนกับวิชา: <b>${cartItem.code}</b><br>${cartItem.name}<br>วัน ${newSch.day} เวลา ${existSch.startH}:${existSch.startM.toString().padStart(2,'0')} - ${existSch.endH}:${existSch.endM.toString().padStart(2,'0')}`
-            };
-          }
-        }
-      }
-    }
-  }
-  return { conflict: false };
-};
-
-// ==========================================
-// 🧱 Components
-// ==========================================
-
-// 🔐 LoginScreen (แบบ Popup Modal)
-// ปรับปรุง: มีปุ่มปิด (X) เพื่อให้คนกดปิดแล้วดูเว็บต่อได้ (แบบ Guest)
-const LoginModal = ({ isOpen, onClose, onLogin }) => {
-  const [isRegister, setIsRegister] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  
-  if (!isOpen) return null; // ถ้าไม่เปิด ก็ไม่แสดงอะไรเลย
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    Swal.fire({
-      title: 'กำลังตรวจสอบ...',
-      text: 'กรุณารอสักครู่',
-      allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading() }
-    });
-
-    const baseUrl = 'https://myscheduleapi.onrender.com';
-    const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
-    const body = { username, password }; 
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server Error (Not JSON)"); 
-      }
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'เกิดข้อผิดพลาด!',
-          text: data.message || "การทำรายการล้มเหลว",
-          confirmButtonColor: '#d33',
-          confirmButtonText: 'ลองใหม่'
-        });
-        return; 
-      }
-
-      if (isRegister) {
-        await Swal.fire({
-          icon: 'success',
-          title: 'สมัครสมาชิกเรียบร้อย!',
-          text: 'กรุณาล็อกอินเพื่อเข้าใช้งาน',
-          confirmButtonColor: '#28a745',
-          confirmButtonText: 'ตกลง'
-        });
-        setIsRegister(false);
-        setPassword(""); 
-        return;
-      }
-
-      await Swal.fire({
-        icon: 'success',
-        title: 'เข้าสู่ระบบสำเร็จ',
-        text: `ยินดีต้อนรับคุณ ${data.user.username}`,
-        timer: 1500,
-        timerProgressBar: true,
-        showConfirmButton: false
-      });
-
-      onLogin(data.user, data.token);
-
-    } catch (err) {
-      console.error(err);
-      Swal.fire({
-        icon: 'error',
-        title: 'ติดต่อ Server ไม่ได้',
-        text: 'Server อาจจะกำลังโหลด หรือลองเช็กอินเทอร์เน็ต',
-        confirmButtonColor: '#d33'
-      });
-    }
-  };
-
-  const styles = {
-    overlay: { position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(5px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10000 },
-    glassBox: { background: "rgba(20, 20, 20, 0.9)", borderRadius: "16px", boxShadow: "0 4px 30px rgba(0, 0, 0, 0.5)", border: "1px solid rgba(255, 255, 255, 0.1)", padding: "40px", width: "380px", textAlign: "center", color: "white", position: "relative" },
-    closeBtn: { position: "absolute", top: "15px", right: "15px", background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" },
-    inputContainer: { position: "relative", marginBottom: "20px" },
-    inputIcon: { position: "absolute", top: "50%", left: "15px", transform: "translateY(-50%)", color: "white", fontSize: "14px" },
-    input: { width: "100%", padding: "12px 15px 12px 45px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.3)", background: "transparent", color: "white", outline: "none", fontSize: "14px", boxSizing: "border-box" },
-    options: { display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", marginBottom: "25px", color: "white" },
-    button: { width: "100%", padding: "12px", borderRadius: "30px", border: "none", background: "white", color: "#333", fontWeight: "bold", fontSize: "16px", cursor: "pointer", transition: "0.3s", marginBottom: "15px" },
-    switchMode: { fontSize: "13px", color: "rgba(255,255,255,0.8)", marginTop: "10px" },
-    link: { color: "white", fontWeight: "bold", cursor: "pointer", marginLeft: "5px", textDecoration: "none" }
-  };
-
-  return (
-    <div style={styles.overlay}>
-      <style>{`.swal2-container { z-index: 20000 !important; }`}</style>
-      <div style={styles.glassBox}>
-        <button style={styles.closeBtn} onClick={onClose}><FaTimes /></button>
-        <h2 style={{ marginBottom: "30px", fontWeight: "bold" }}>{isRegister ? "Register" : "Login"}</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={styles.inputContainer}><FaUser style={styles.inputIcon} /><input type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required style={styles.input} /></div>
-          <div style={styles.inputContainer}><FaLock style={styles.inputIcon} /><input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={styles.input} /></div>
-          {!isRegister && (<div style={styles.options}><label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}><input type="checkbox" style={{ marginRight: "5px" }} /> Remember me</label><span style={{ cursor: "pointer" }}>Forgot Password?</span></div>)}
-          <button type="submit" style={styles.button}>{isRegister ? "Register" : "Login"}</button>
-        </form>
-        <p style={styles.switchMode}>{isRegister ? "Already have an account?" : "Don't have an account?"} <span onClick={() => setIsRegister(!isRegister)} style={styles.link}>{isRegister ? "Login" : "Register"}</span></p>
-      </div>
-    </div>
-  );
-};
-
-// 📱 MobileScheduleList
-const MobileScheduleList = ({ cart, theme }) => {
-  const daysOrder = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-  const fullDays = { 'Mo': 'วันจันทร์', 'Tu': 'วันอังคาร', 'We': 'วันพุธ', 'Th': 'วันพฤหัสบดี', 'Fr': 'วันศุกร์', 'Sa': 'วันเสาร์', 'Su': 'วันอาทิตย์' };
-  
-  const scheduleByDay = {};
-  cart.forEach(course => {
-    const schedules = parseSchedule(course.time);
-    schedules.forEach(sch => {
-      if (!scheduleByDay[sch.day]) scheduleByDay[sch.day] = [];
-      scheduleByDay[sch.day].push({ ...sch, course });
-    });
-  });
-
-  Object.keys(scheduleByDay).forEach(day => {
-    scheduleByDay[day].sort((a, b) => a.startTotal - b.startTotal);
-  });
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "15px", marginBottom: "20px" }}>
-      {daysOrder.map(day => {
-        if (!scheduleByDay[day]) return null;
-        return (
-          <div key={day} style={{ background: theme.cardBg, borderRadius: "10px", padding: "15px", border: `1px solid ${theme.cardBorder}`, boxShadow: theme.shadow }}>
-            <h3 style={{ margin: "0 0 10px 0", color: "#FF7F00", borderBottom: `1px solid ${theme.cardBorder}`, paddingBottom: "5px" }}>
-              {fullDays[day]}
-            </h3>
-            {scheduleByDay[day].map((item, idx) => (
-              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: "10px", color: theme.text }}>
-                <div style={{ background: "#007bff", width: "4px", height: "40px", borderRadius: "2px", flexShrink: 0 }}></div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold", fontSize: "16px" }}>{item.course.code}</div>
-                  <div style={{ fontSize: "14px", opacity: 0.8 }}>{item.course.name}</div>
-                  <div style={{ display: "flex", gap: "15px", marginTop: "5px", fontSize: "13px", color: theme.text, opacity: 0.7 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}><FaClock /> {item.startH}:{item.startM.toString().padStart(2,'0')} - {item.endH}:{item.endM.toString().padStart(2,'0')}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}><FaMapMarkerAlt /> {item.room}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      })}
-      {cart.length === 0 && <div style={{ textAlign: "center", color: theme.text, padding: "20px" }}>ยังไม่มีวิชาเรียน</div>}
-    </div>
-  );
-};
-
-// 💻 ScheduleGrid
-const ScheduleGrid = ({ cart, getSection, captureRef, theme }) => {
-  const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-  const allSchedules = cart.flatMap(course => parseSchedule(course.time));
-  let minStart = 8; let maxEnd = 18;
-  if (allSchedules.length > 0) {
-    const startTimes = allSchedules.map(s => s.startH);
-    const endTimes = allSchedules.map(s => s.endH);
-    minStart = Math.min(...startTimes, 8);
-    maxEnd = Math.max(...endTimes, 18);
-  }
-  const startHour = minStart; const endHour = maxEnd; 
-  const totalHours = endHour - startHour + 1;
-  const timeHeaders = Array.from({ length: totalHours }, (_, i) => startHour + i);
-
-  return (
-    <div ref={captureRef} style={{ margin: "20px 0", width: "100%", background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", boxShadow: theme.shadow, padding: "10px", boxSizing: "border-box", overflow: "hidden" }}>
-      <div style={{ display: "grid", gap: "1px", background: theme.gridBg, border: `1px solid ${theme.gridBg}`, gridTemplateColumns: `80px repeat(${totalHours * 2}, 1fr)`, gridTemplateRows: "50px repeat(7, 60px)", width: "100%" }}>
-        <div style={{ background: theme.gridHeader, color: "white", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:"bold" }}>Day / Time</div>
-        {timeHeaders.map(t => (<div key={t} style={{ gridColumn: "span 2", background: theme.gridSubHeader, color: "white", display:"flex", alignItems:"center", justifyContent:"center", fontSize: "11px", fontWeight:"500", whiteSpace: "nowrap" }}>{t.toString().padStart(2, '0')}:00 - {(t + 1).toString().padStart(2, '0')}:00</div>))}
-        {days.map((day, rowIndex) => (<><div key={day} style={{ background: "#FF7F00", color: "white", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gridColumn: "1 / 2", gridRow: `${rowIndex + 2} / ${rowIndex + 3}` }}>{day}</div>{Array.from({ length: totalHours * 2 }).map((_, colIndex) => (<div key={`${day}-${colIndex}`} style={{ background: theme.gridCell, gridColumn: `${colIndex + 2} / ${colIndex + 3}`, gridRow: `${rowIndex + 2} / ${rowIndex + 3}` }}></div>))}</>))}
-        {cart.map((course, index) => {
-          const schedules = parseSchedule(course.time);
-          const colors = ["#FF5733", "#28A745", "#007BFF", "#E83E8C", "#17A2B8", "#FD7E14"];
-          return schedules.map((sch, i) => {
-            const rowStart = days.indexOf(sch.day) + 2;
-            const startSlot = (sch.startH - startHour) * 2 + (sch.startM >= 30 ? 1 : 0);
-            const endSlot = (sch.endH - startHour) * 2 + (sch.endM >= 30 ? 1 : 0);
-            const colStart = startSlot + 2; const colEnd = endSlot + 2;
-            if (rowStart < 2 || colStart < 2) return null;
-            return (
-              <div key={`${course.code}-${i}`} style={{ gridRow: `${rowStart} / ${rowStart + 1}`, gridColumn: `${colStart} / ${colEnd}`, background: colors[index % colors.length], color: "white", margin: "1px", borderRadius: "4px", padding: "2px", zIndex: 10, fontSize: "10px", overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", lineHeight: "1.2", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} title={`${course.code} ${course.name} Room: ${sch.room}`}>
-                <div style={{fontWeight:"bold", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%"}}>{course.code}</div>
-                <div style={{opacity:0.9, whiteSpace:"nowrap"}}>Sec {getSection(course)}</div>
-                <div style={{whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%"}}>📍 {sch.room}</div>
-              </div>
-            )
-          });
-        })}
-      </div>
-    </div>
-  );
-};
-
-// ==========================================
-// 🚀 App Main
-// ==========================================
 function App() {
   const [user, setUser] = useState(null);
   const [courses, setCourses] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [cart, setCart] = useState([]);
-  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("theme") === "dark"); 
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); 
-  // 🔥 State สำหรับเปิด/ปิดหน้า Login
-  const [showLoginModal, setShowLoginModal] = useState(false); 
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const scheduleRef = useRef(null);
 
-  const theme = isDarkMode ? themes.dark : themes.light; 
+  const theme = isDarkMode ? themes.dark : themes.light;
 
+  // 🔄 1. Persistent Login Logic (แก้ปัญหา Refresh แล้วหลุด)
+  useEffect(() => {
+    // เช็คว่ามีข้อมูล User เก็บไว้ใน LocalStorage หรือไม่
+    const storedUser = localStorage.getItem("userProfile");
+    const storedToken = localStorage.getItem("userToken");
+    
+    if (storedUser && storedToken) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setCart(parsedUser.mySchedule || []); // คืนค่าตารางเรียนเก่าด้วย
+    }
+  }, []);
+
+  // Responsive Check
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Theme Sync
   useEffect(() => {
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-    document.body.style.backgroundColor = theme.bg; 
+    document.body.className = isDarkMode ? 'dark-mode' : 'light-mode';
+    document.body.style.backgroundColor = theme.bg;
+    document.body.style.color = theme.text;
   }, [isDarkMode, theme]);
 
+  // Fetch Courses
   useEffect(() => {
-    const apiUrl = 'https://myscheduleapi.onrender.com/api/courses'; 
-
-    fetch(apiUrl)
-      .then(res => {
-         if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
-         return res.json();
-      })
-      .then(rawCourses => {
-        if (!Array.isArray(rawCourses)) {
-           console.error("Data is not an array:", rawCourses);
-           setCourses([]); 
-           return;
-        }
-        const cleanCourses = rawCourses.map(c => ({ 
-            _id: c._id, 
-            code: c.code || c.Code || c.CODE || "N/A", 
-            name: c.name || c.Name || c.NAME || "Unknown Course", 
-            credit: parseInt(c.credit || c.Credit || c.CREDIT || 0), 
-            time: c.time || c.Time || c.TIME || "-" 
+    fetch('https://myscheduleapi.onrender.com/api/courses')
+      .then(res => res.json())
+      .then(data => {
+        const clean = (Array.isArray(data) ? data : []).map(c => ({
+          _id: c._id, code: c.code || "N/A", name: c.name || "Unknown", credit: parseInt(c.credit || 0), time: c.time || "-"
         }));
-        setCourses(cleanCourses);
+        setCourses(clean);
       })
-      .catch(err => {
-          console.error("Error loading courses:", err);
-      });
+      .catch(console.error);
   }, []);
 
-  // 🔥 ล็อกอินเสร็จแล้วปิด Modal ทันที
+  // --- Handlers ---
+
   const handleLogin = (userData, token) => {
     setUser(userData);
     setCart(userData.mySchedule || []);
+    setShowLoginModal(false);
+    
+    // 🔥 Save to LocalStorage
     localStorage.setItem("userToken", token);
-    setShowLoginModal(false); // ปิดหน้าต่าง Login
+    localStorage.setItem("userProfile", JSON.stringify(userData));
   };
 
-  const handleLogout = async () => {
-    await Swal.fire({
-      icon: 'success',
-      title: 'ออกจากระบบแล้ว',
-      timer: 1000,
-      showConfirmButton: false
+  const handleLogout = () => {
+    Swal.fire({
+      title: 'ต้องการออกจากระบบ?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'ใช่, ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setUser(null);
+        setCart([]);
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("userProfile"); // ลบข้อมูลถาวร
+      }
     });
-    setUser(null);
-    setCart([]); // เคลียร์ตารางเรียนเวลากลายเป็น Guest
-    localStorage.removeItem("userToken");
   };
 
+  // Sync Cart to Server
   useEffect(() => {
     if (user && cart.length >= 0) {
       fetch('https://myscheduleapi.onrender.com/api/save-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: user.username, cart: cart })
-      }).then(() => {}).catch(err => console.error("Save failed", err));
+      }).catch(err => console.error("Save failed", err));
+      
+      // Update LocalStorage Realtime เพื่อให้ refresh แล้วข้อมูลล่าสุดยังอยู่
+      const updatedUser = { ...user, mySchedule: cart };
+      localStorage.setItem("userProfile", JSON.stringify(updatedUser));
+      setUser(updatedUser); // Update State user เพื่อให้ consistency
     }
-  }, [cart, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart]); // ระวัง Loop: ถ้า setUser ในนี้ต้องระวัง แต่กรณีนี้อัพเดทเฉพาะ field
 
-  const totalCredits = cart.reduce((sum, course) => sum + course.credit, 0);
-  const getSection = (course) => { const sameSubject = courses.filter(c => c.code === course.code); return sameSubject.findIndex(c => c._id === course._id) + 1; };
-  
-  // 🔥 ฟังก์ชันใหม่: เช็คก่อนว่าล็อกอินยัง?
-  const checkAuth = () => {
-    if (!user) {
-      // ถ้ายังไม่ล็อกอิน ให้เด้ง Modal Login ขึ้นมา
-      setShowLoginModal(true);
-      return false;
-    }
-    return true;
-  };
+  const getSection = (course) => courses.filter(c => c.code === course.code).findIndex(c => c._id === course._id) + 1;
+  const totalCredits = cart.reduce((sum, c) => sum + c.credit, 0);
 
   const addToCart = (course) => {
-    // 🔒 ถ้ายังไม่ล็อกอิน ห้ามเพิ่มวิชา
-    if (!checkAuth()) return;
-
-    if (cart.find(item => item._id === course._id)) return;
-    if (cart.find(item => item.code === course.code)) { 
-        Swal.fire({ icon: 'warning', title: 'วิชาซ้ำ!', text: `คุณได้ลงวิชา ${course.code} ไปแล้ว`, confirmButtonColor: '#ffc107', confirmButtonText: 'โอเค' });
-        return; 
-    }
-    if (totalCredits + course.credit > 22) { 
-        Swal.fire({ icon: 'error', title: 'หน่วยกิตเกิน!', text: `ตอนนี้มี ${totalCredits} หน่วยกิตแล้ว (Max 22)`, confirmButtonColor: '#d33' });
-        return; 
-    }
-    const conflict = checkConflict(course, cart);
-    if (conflict.conflict) { 
-        Swal.fire({ icon: 'error', title: 'ไม่สามารถเพิ่มข้อมูลได้!', html: `รายวิชาซ้ำซ้อน<br/>${conflict.detail.replace('⛔ เวลาชนกับวิชา:', 'กับวิชา')}`, confirmButtonText: 'OK', confirmButtonColor: '#3085d6', background: '#fff' });
-        return; 
-    }
+    if (!user) return setShowLoginModal(true);
+    if (cart.find(c => c.code === course.code)) return Swal.fire('Warning', 'วิชานี้ลงไปแล้ว', 'warning');
+    if (totalCredits + course.credit > 22) return Swal.fire('Error', 'หน่วยกิตเกิน 22', 'error');
+    
+    const check = checkConflict(course, cart);
+    if (check.conflict) return Swal.fire({ icon: 'error', title: 'เวลาชน!', html: check.detail });
+    
     setCart([...cart, course]);
-    Swal.fire({ icon: 'success', title: 'เพิ่มรายวิชาสำเร็จ', text: `${course.code} ${course.name}`, timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', timer: 1000, showConfirmButton: false });
   };
 
-  const removeFromCart = (courseId) => {
-      // 🔒 ถ้ายังไม่ล็อกอิน ห้ามลบ
-      if (!checkAuth()) return;
-
-      Swal.fire({ title: 'ยืนยันการลบ?', text: "ต้องการลบรายวิชานี้ออกจากตาราง?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ลบเลย!', cancelButtonText: 'ยกเลิก' }).then((result) => {
-          if (result.isConfirmed) {
-              setCart(cart.filter(item => item._id !== courseId));
-              Swal.fire({ title: 'ลบสำเร็จ!', icon: 'success', timer: 1000, showConfirmButton: false });
-          }
-      })
-  }
-
-  const handleSaveImage = async () => { 
-      // 🔒 อยากเซฟรูป ต้องล็อกอินก่อน
-      if (!checkAuth()) return;
-
-      const element = scheduleRef.current; if (!element) return; 
-      Swal.fire({ title: 'กำลังสร้างรูปภาพ...', html: 'กรุณารอสักครู่', timerProgressBar: true, didOpen: () => { Swal.showLoading() } });
-      const originalOverflowX = element.style.overflowX; const originalMaxWidth = element.style.maxWidth; const originalWidth = element.style.width; element.style.overflowX = 'visible'; element.style.maxWidth = 'none'; element.style.width = 'fit-content'; 
-      try { 
-          const tempCanvas = await html2canvas(element, { scale: 3, backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff", windowWidth: element.scrollWidth, width: element.scrollWidth, height: element.scrollHeight }); 
-          const image = tempCanvas.toDataURL("image/png", 1.0); 
-          const link = document.createElement("a"); link.href = image; link.download = `myschedule_${user?.username}.png`; link.click(); 
-          Swal.fire({ icon: 'success', title: 'บันทึกรูปสำเร็จ!', timer: 1500, showConfirmButton: false });
-      } catch (error) { 
-          console.error(error); 
-          Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: 'เกิดข้อผิดพลาดในการสร้างรูป' });
-      } finally { 
-          element.style.overflowX = originalOverflowX; element.style.maxWidth = originalMaxWidth; element.style.width = originalWidth; 
-      } 
+  const removeFromCart = (id) => {
+    if (!user) return setShowLoginModal(true);
+    Swal.fire({ title: 'ลบรายวิชา?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' }).then((r) => {
+      if (r.isConfirmed) setCart(cart.filter(c => c._id !== id));
+    });
   };
 
-  const filteredCourses = courses.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()) || c.name.toLowerCase().includes(searchText.toLowerCase()));
-  let creditStatusColor = totalCredits < 8 ? "#ffc107" : totalCredits === 22 ? "#dc3545" : "#28a745";
-  let creditStatusText = totalCredits < 8 ? "⚠️ น้อยกว่า 8" : totalCredits === 22 ? "⛔ เต็มพิกัด" : "✅ ปกติ";
+  const handleSaveImage = async () => {
+    if (!user) return setShowLoginModal(true);
+    const element = scheduleRef.current;
+    if(!element) return;
+    
+    const originalStyle = { overflow: element.style.overflow, width: element.style.width };
+    element.style.overflow = 'visible'; element.style.width = 'fit-content';
+    
+    const canvas = await html2canvas(element, { scale: 3, backgroundColor: isDarkMode ? "#1e1e1e" : "#fff" });
+    
+    element.style.overflow = originalStyle.overflow; element.style.width = originalStyle.width;
+    
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `schedule_${user.username}.png`;
+    link.click();
+  };
 
-  // ⚠️ ลบเงื่อนไข if (!user) return <LoginScreen /> ออกแล้ว!
-  // เพื่อให้ render หน้าเว็บได้เลยแม้จะเป็น Guest
+  const filtered = courses.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()) || c.name.toLowerCase().includes(searchText.toLowerCase()));
 
   return (
-    <div style={{ padding: "30px", fontFamily: "sans-serif", maxWidth: "1200px", margin: "0 auto", background: theme.bg, color: theme.text, minHeight: "100vh", transition: "0.3s" }}>
-      
-      {/* 🔐 หน้าต่าง Login จะเด้งขึ้นมาเมื่อ showLoginModal เป็น true */}
+    <div className="app-container">
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
 
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px", flexWrap: "wrap", gap: "10px"}}>
+      {/* Header */}
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 30, flexWrap: "wrap", gap: 15 }}>
         <div>
-          <h1 style={{ color: theme.text, margin:0 }}>Planer by Yom1nr</h1>
-          {/* ปรับข้อความต้อนรับตามสถานะ */}
-          <p style={{ color: theme.text, opacity: 0.7, margin: "5px 0 0 0" }}>
-            {user ? <span>สวัสดี, <b>{user.username}</b></span> : <span>สถานะ: <b>Guest Mode</b> (กรุณาล็อกอินเพื่อบันทึกข้อมูล)</span>}
+          <h1 style={{ margin: 0, background: "linear-gradient(to right, #FF7F00, #FFD700)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            Planer by Yom1nr
+          </h1>
+          <p style={{ margin: "5px 0", opacity: 0.7 }}>
+            {user ? `👋 สวัสดี, ${user.username}` : "Guest Mode (ข้อมูลไม่ถูกบันทึก)"}
           </p>
         </div>
-        <div style={{display:"flex", gap:"10px", alignItems:"center"}}>
-           <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: "transparent", border: `1px solid ${theme.cardBorder}`, color: theme.text, padding: "10px", borderRadius: "50%", cursor: "pointer", fontSize: "18px", display:"flex", alignItems:"center", justifyContent:"center", width: "45px", height: "45px" }}>
-             {isDarkMode ? <FaSun color="#ffc107" /> : <FaMoon color="#6c757d" />}
-           </button>
 
-          <div style={{ padding: "10px 20px", borderRadius: "8px", background: creditStatusColor, color: totalCredits < 8 ? "#333" : "white", fontWeight: "bold", textAlign: "right", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}><div style={{fontSize:"18px"}}>Total: {totalCredits}</div></div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button className="btn btn-secondary btn-icon" onClick={() => setIsDarkMode(!isDarkMode)}>
+            {isDarkMode ? <FaSun color="#FFD700" /> : <FaMoon />}
+          </button>
           
-          {!isMobile && <button onClick={handleSaveImage} style={{ background: "#007bff", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>📷 Save</button>}
+          <div className="card" style={{ padding: "8px 15px", display: "flex", alignItems: "center", gap: 10, fontWeight: "bold" }}>
+             <span style={{ fontSize: "14px", opacity: 0.7 }}>Credits</span>
+             <span style={{ color: totalCredits > 22 ? "red" : totalCredits < 9 ? "#FF7F00" : "green", fontSize: "18px" }}>{totalCredits}</span>
+          </div>
+
+          {!isMobile && <button className="btn btn-primary" onClick={handleSaveImage}><FaCamera /> Save</button>}
           
-          {/* 🔥 ปุ่มเปลี่ยนตามสถานะ: ถ้า User มีค่า = Logout / ถ้าไม่มี = Login */}
           {user ? (
-            <button onClick={handleLogout} style={{ background: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>🚪 Logout</button>
+            <button className="btn btn-danger" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
           ) : (
-            <button onClick={() => setShowLoginModal(true)} style={{ background: "#28a745", color: "white", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", height: "58px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)", fontWeight: "bold" }}>🔑 Login</button>
+            <button className="btn btn-success" onClick={() => setShowLoginModal(true)}><FaUser /> Login</button>
           )}
         </div>
-      </div>
-      
-      {isMobile ? (
-        <MobileScheduleList cart={cart} theme={theme} />
-      ) : (
-        <ScheduleGrid cart={cart} getSection={getSection} captureRef={scheduleRef} theme={theme} />
+      </header>
+
+      {/* Main Schedule */}
+      <ScheduleGrid cart={cart} getSection={getSection} captureRef={scheduleRef} theme={theme} isMobile={isMobile} />
+
+      {/* Selected Courses Chips */}
+      {cart.length > 0 && (
+        <div className="card" style={{ marginBottom: 30, borderLeft: "5px solid var(--primary)" }}>
+          <h4 style={{ margin: "0 0 15px 0" }}>วิชาที่เลือก ({cart.length})</h4>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {cart.map(c => (
+              <div key={c._id} className="tag" style={{ background: isDarkMode ? "#333" : "#e9ecef", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", fontSize: "14px" }}>
+                <b>{c.code}</b> 
+                <span style={{ opacity: 0.7 }}>Sec {getSection(c)}</span>
+                <FaTimes style={{ cursor: "pointer", color: "red" }} onClick={() => removeFromCart(c._id)} />
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      <div style={{ background: theme.highlight, padding: "20px", borderRadius: "10px", marginBottom: "30px", border: `2px dashed ${theme.highlightBorder}` }}>
-        <h3 style={{ margin: "0 0 15px 0", color: isDarkMode ? "#ffbb33" : "#E65100" }}>🎒 วิชาที่เลือก ({cart.length})</h3>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-          {cart.map((c) => (
-            <div key={c._id} style={{ background: theme.cardBg, color: theme.text, padding: "8px 15px", borderRadius: "20px", display: "flex", alignItems: "center", gap: "10px", border: `1px solid ${theme.cardBorder}` }}>
-              <div><span style={{ fontWeight: "bold" }}>{c.code}</span> <span style={{ fontSize:"12px", background: isDarkMode ? "#444" : "#eee", padding:"2px 5px", borderRadius:"4px" }}>{c.credit} Cr.</span></div>
-              <span style={{ fontSize:"12px", opacity: 0.7 }}>Sec {getSection(c)}</span>
-              <button onClick={() => removeFromCart(c._id)} style={{ background: "#ff4d4d", color: "white", border: "none", borderRadius: "50%", width: "20px", height: "20px", cursor: "pointer" }}>✕</button>
-            </div>
-          ))}
-        </div>
+      {/* Search & List */}
+      <div style={{ marginBottom: 20 }}>
+         <input 
+           type="text" 
+           className="search-input" 
+           placeholder="🔎 ค้นหาวิชา (รหัส, ชื่อ)..." 
+           value={searchText} 
+           onChange={e => setSearchText(e.target.value)} 
+         />
       </div>
 
-      <input type="text" placeholder="🔎 ค้นหา..." value={searchText} onChange={(e) => setSearchText(e.target.value)} style={{ width: "100%", padding: "12px", marginBottom: "20px", fontSize: "16px", border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", background: theme.inputBg, color: theme.inputText }} />
-      
-      <div style={{ height: "400px", overflowY: "auto", border: `1px solid ${theme.cardBorder}`, borderRadius: "8px", background: theme.cardBg }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", color: theme.text }}>
-          <thead style={{ position: "sticky", top: 0, background: "#FF7F00", color: "white" }}><tr><th style={{padding:"12px"}}>รหัส</th><th style={{padding:"12px"}}>ชื่อ</th><th style={{padding:"12px"}}>หน่วยกิต</th><th style={{padding:"12px"}}>Sec</th><th style={{padding:"12px"}}>เวลา</th><th style={{padding:"12px"}}></th></tr></thead>
+      <div className="course-table-container card" style={{ padding: 0 }}>
+        <table className="modern-table">
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>ชื่อวิชา</th>
+              <th style={{textAlign:"center"}}>หน่วยกิต</th>
+              <th style={{textAlign:"center"}}>Sec</th>
+              <th>เวลา</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
-            {filteredCourses.slice(0, 100).map((c) => (
-              <tr key={c._id} style={{ borderBottom: `1px solid ${theme.cardBorder}` }}>
-                <td style={{ padding: "12px", fontWeight:"bold", color: isDarkMode ? "#ffbb33" : "#E65100" }}>{c.code}</td>
-                <td style={{ padding: "12px" }}>{c.name}</td>
-                <td style={{ padding: "12px", textAlign:"center", fontWeight:"bold" }}>{c.credit}</td>
-                <td style={{ padding: "12px", textAlign:"center", fontWeight:"bold" }}>{getSection(c)}</td>
-                <td style={{ padding: "12px", fontSize:"13px", opacity: 0.8 }}>{c.time}</td>
-                <td style={{ padding: "12px", textAlign:"center" }}><button onClick={() => addToCart(c)} style={{ background: "#28a745", color: "white", border: "none", padding: "5px 10px", borderRadius: "5px", cursor: "pointer" }}>+</button></td>
+            {filtered.slice(0, 100).map(c => (
+              <tr key={c._id}>
+                <td style={{ fontWeight: "bold", color: "var(--primary)" }}>{c.code}</td>
+                <td>{c.name}</td>
+                <td style={{ textAlign: "center" }}>{c.credit}</td>
+                <td style={{ textAlign: "center" }}>{getSection(c)}</td>
+                <td style={{ fontSize: "13px", opacity: 0.8 }}>{c.time}</td>
+                <td style={{ textAlign: "center" }}>
+                   <button className="btn btn-success" style={{ padding: "5px 10px", borderRadius: "8px" }} onClick={() => addToCart(c)}><FaPlus /></button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -510,4 +247,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
