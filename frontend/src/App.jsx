@@ -75,7 +75,7 @@ function App() {
     })//
     .catch(co*/
   // 📡 4. โหลดรายวิชา
-  useEffect(() => {
+  /*useEffect(() => {
     fetch('https://myscheduleapi.onrender.com/api/courses')
       .then(res => res.json())
       .then(data => {
@@ -123,7 +123,66 @@ function App() {
         setCourses(clean);
       })
       .catch(console.error);
+  }, []);*/
+    // 📡 4. โหลดรายวิชา
+  useEffect(() => {
+    fetch('https://myscheduleapi.onrender.com/api/courses')
+      .then(res => res.json())
+      .then(data => {
+        let clean = (Array.isArray(data) ? data : []).map(c => ({
+          _id: c._id, 
+          code: c.code || "N/A", 
+          name: c.name || "Unknown", 
+          credit: parseInt(c.credit || 0), 
+          time: c.time || "-" 
+        }));
+
+        // ฟังก์ชันช่วย: แปลงเวลาเรียนทั้งหมดใน Text ให้เป็นตัวเลข (นาทีรวมจากต้นสัปดาห์)
+        const getStartTimes = (timeStr) => {
+            const dayPriority = { "Mo": 1, "Tu": 2, "We": 3, "Th": 4, "Fr": 5, "Sa": 6, "Su": 7 };
+            // Regex หา "ทุกช่วงเวลา" ที่มีใน Text
+            const regex = /([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/g;
+            let matches = [];
+            let match;
+            while ((match = regex.exec(timeStr)) !== null) {
+                const day = dayPriority[match[1]] || 99;
+                const hour = parseInt(match[2]);
+                const min = parseInt(match[3]);
+                // สูตร: (วัน * 24 * 60) + (ชม. * 60) + นาที
+                matches.push((day * 24 * 60) + (hour * 60) + min);
+            }
+            return matches;
+        };
+
+        clean.sort((a, b) => {
+          // 1. เรียงตามรหัสวิชา (A-Z)
+          if (a.code !== b.code) {
+              return a.code.localeCompare(b.code);
+          }
+
+          // 2. ถ้าวิชาเดียวกัน ให้เทียบเวลา "ทุกช่วง"
+          const timesA = getStartTimes(a.time);
+          const timesB = getStartTimes(b.time);
+
+          // วนลูปเทียบทีละช่วงเวลา (คาบ 1, คาบ 2, ...)
+          const maxLen = Math.max(timesA.length, timesB.length);
+          for (let i = 0; i < maxLen; i++) {
+              const valA = timesA[i] !== undefined ? timesA[i] : 999999; // ถ้าไม่มีคาบเทียบ ให้ถือว่ามาทีหลัง
+              const valB = timesB[i] !== undefined ? timesB[i] : 999999;
+              
+              if (valA !== valB) {
+                  return valA - valB; // เจอตัวต่างปุ๊บ เรียงเลย
+              }
+          }
+          
+          return 0; // เหมือนกันเป๊ะ
+        });
+
+        setCourses(clean);
+      })
+      .catch(console.error);
   }, []);
+
 
 
   // --- Handlers ---
