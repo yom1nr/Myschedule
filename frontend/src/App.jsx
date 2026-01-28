@@ -49,17 +49,17 @@ function App() {
   }, [isDarkMode, theme]);
 
 // 📡 4. โหลดรายวิชา (แก้ตรงนี้)
-useEffect(() => {
-  fetch('https://myscheduleapi.onrender.com/api/courses')
-    .then(res => res.json())
-    .then(data => {
-      let clean = (Array.isArray(data) ? data : []).map(c => ({
-        _id: c._id, 
-        code: c.code || "N/A", 
-        name: c.name || "Unknown", 
-        credit: parseInt(c.credit || 0), 
-        time: c.time || "-" 
-      }));
+//seEffect(() => {
+  //fetch('https://myscheduleapi.onrender.com/api/courses')
+    //.then(res => res.json())
+//    .then(data => {
+    //  let clean = (Array.isArray(data) ? data : []).map(c => ({
+    //  _id: c._id, 
+     //   code: c.code || "N/A", 
+      //  name: c.name || "Unknown", 
+        //credit: parseInt(c.credit || 0), 
+       // time: c.time || "-" 
+      /*}));
 
       // 🔥 เพิ่มโค้ดส่วนนี้: เรียงลำดับข้อมูลให้ถูกต้อง (Sort)
       clean.sort((a, b) => {
@@ -72,9 +72,58 @@ useEffect(() => {
       });
 
       setCourses(clean);
-    })
-    .catch(console.error);
-}, []);
+    })//
+    .catch(co*/
+  // 📡 4. โหลดรายวิชา
+  useEffect(() => {
+    fetch('https://myscheduleapi.onrender.com/api/courses')
+      .then(res => res.json())
+      .then(data => {
+        let clean = (Array.isArray(data) ? data : []).map(c => ({
+          _id: c._id, 
+          code: c.code || "N/A", 
+          name: c.name || "Unknown", 
+          credit: parseInt(c.credit || 0), 
+          time: c.time || "-" 
+        }));
+
+        // 🔥 แก้ไข: เรียงลำดับตาม "วันในสัปดาห์" จริงๆ (จันทร์-อาทิตย์)
+        const dayPriority = { "Mo": 1, "Tu": 2, "We": 3, "Th": 4, "Fr": 5, "Sa": 6, "Su": 7 };
+
+        clean.sort((a, b) => {
+          // 1. เรียงตามรหัสวิชาก่อน (A-Z)
+          if (a.code !== b.code) {
+              return a.code.localeCompare(b.code);
+          }
+
+          // 2. ดึง "วัน" และ "เวลา" ออกมาจาก Text เพื่อเทียบกัน
+          // Regex นี้จะหา "วัน" (เช่น We) และ "เวลาเริ่ม" (เช่น 09)
+          const matchA = a.time.match(/([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/);
+          const matchB = b.time.match(/([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/);
+
+          if (matchA && matchB) {
+              const dayA = dayPriority[matchA[1]] || 99; // แปลงวันเป็นตัวเลข
+              const dayB = dayPriority[matchB[1]] || 99;
+
+              // ถ้าคนละวัน ให้เรียงตามลำดับวัน (จันทร์ -> อาทิตย์)
+              if (dayA !== dayB) {
+                  return dayA - dayB;
+              }
+
+              // ถ้าวันเดียวกัน ให้เรียงตามเวลา (เช้า -> เย็น)
+              const timeA = parseInt(matchA[2]) * 60 + parseInt(matchA[3]);
+              const timeB = parseInt(matchB[2]) * 60 + parseInt(matchB[3]);
+              return timeA - timeB;
+          }
+
+          // ถ้าข้อมูลเวลาไม่ชัดเจน ให้เรียงแบบตัวอักษรปกติ
+          return a.time.localeCompare(b.time);
+        });
+
+        setCourses(clean);
+      })
+      .catch(console.error);
+  }, []);
 
 
   // --- Handlers ---
