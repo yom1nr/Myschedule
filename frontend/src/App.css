@@ -1,134 +1,248 @@
-@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+/* ✅ Reset & Global Styling */
+* {
+  box-sizing: border-box;
+  /* แก้ปัญหา Input ล้น */
+}
 
 :root {
-  --primary: #FF7F00;
-  --primary-hover: #e66a00;
-  --bg-light: #f4f6f9;
-  --bg-dark: #121212;
-  --card-light: #ffffff;
-  --card-dark: #1e1e1e;
-  --text-light: #333;
-  --text-dark: #e0e0e0;
-  --glass: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --primary: #ff6b00;
+  --primary-gradient: linear-gradient(135deg, #ff6b00, #ff9e00);
+  --bg-dark: #0f0f0f;
+  --card-dark: rgba(30, 30, 30, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-main: #ffffff;
+  --text-secondary: #aaaaaa;
+  --shadow-glow: 0 0 20px rgba(255, 107, 0, 0.3);
 }
 
 body {
   font-family: 'Prompt', sans-serif;
   margin: 0;
-  transition: background 0.3s ease;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  /* พื้นหลังแบบ Modern Gradient จางๆ */
+  background-image: radial-gradient(circle at 10% 20%, rgba(255, 107, 0, 0.05) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, rgba(0, 100, 255, 0.05) 0%, transparent 20%);
 }
 
-/* Container */
-.app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  min-height: 100vh;
+/* ✅ Glassmorphism Card */
+.card {
+  background: var(--card-dark);
+  backdrop-filter: blur(12px);
+  /* เอฟเฟกต์กระจกฝ้า */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Buttons */
+.card:hover {
+  border-color: rgba(255, 107, 0, 0.3);
+}
+
+/* ✅ Buttons */
 .btn {
   border: none;
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
+  font-size: 1rem;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-family: 'Prompt', sans-serif;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn:active { transform: scale(0.95); }
-.btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(255, 127, 0, 0.3); }
-.btn-success { background: #28a745; color: white; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); }
-.btn-danger { background: #ff4d4d; color: white; }
-.btn-secondary { background: #6c757d; color: white; }
-.btn-icon { padding: 10px; border-radius: 50%; width: 45px; height: 45px; justify-content: center; }
-
-/* Cards & Glassmorphism */
-.card {
-  background: var(--card-light);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: 1px solid rgba(0,0,0,0.05);
-  transition: background 0.3s, color 0.3s;
+.btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
 }
 
-.dark-mode .card {
-  background: var(--card-dark);
-  border: 1px solid rgba(255,255,255,0.1);
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 0, 0.6);
+  /* Glow Effect */
 }
 
-/* Table Modernization */
-.course-table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
-.modern-table {
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-danger {
+  background: rgba(255, 59, 59, 0.2);
+  color: #ff5c5c;
+  border: 1px solid rgba(255, 59, 59, 0.3);
+}
+
+.btn-danger:hover {
+  background: rgba(255, 59, 59, 0.4);
+  color: white;
+  box-shadow: 0 0 15px rgba(255, 59, 59, 0.4);
+}
+
+.btn-icon {
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* ✅ Modern Inputs */
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.search-input {
   width: 100%;
-  border-collapse: collapse;
+  padding: 14px 16px 14px 45px;
+  /* เว้นที่ให้ไอคอนซ้าย */
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.3);
+  /* สีดำจางๆ */
+  color: white;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.15);
+  /* Focus Ring สวยๆ */
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  transition: 0.3s;
+}
+
+.search-input:focus+.input-icon,
+.search-input:focus~.input-icon {
+  color: var(--primary);
+}
+
+/* ✅ Modal Styling (Glassmorphism) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  /* เบลอฉากหลัง */
+  z-index: 10000;
+  display: flex;
+  justifyContent: center;
+  alignItems: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: rgba(25, 25, 25, 0.85);
+  /* สีเข้มโปร่งแสง */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  padding: 40px;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  position: relative;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modal Title */
+.modal-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  background: linear-gradient(to right, #fff, #bbb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ✅ Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ✅ SweetAlert Fix (แก้ปัญหาบัง Loading) */
+div:where(.swal2-container) {
+  z-index: 20000 !important;
+}
+
+/* ✅ Tags & Table */
+.tag {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  transition: 0.2s;
+}
+
+.tag:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .modern-table th {
-  background: var(--primary);
-  color: white;
-  padding: 15px;
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  background:
+    #1f1f1f;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
 }
 
 .modern-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-}
-
-.dark-mode .modern-table td { border-bottom: 1px solid #333; }
-.modern-table tr:hover { background-color: rgba(0,0,0,0.02); }
-.dark-mode .modern-table tr:hover { background-color: rgba(255,255,255,0.05); }
-
-/* Inputs */
-.search-input {
-  width: 100%;
-  padding: 15px;
-  box-sizing: border-box;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  background: #e9ecef;
-  font-size: 16px;
-  outline: none;
-  transition: 0.3s;
-}
-.search-input:focus {
-  background: white;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(255, 127, 0, 0.1);
-}
-.dark-mode .search-input {
-  background: #2d2d2d;
-  color: white;
-}
-.dark-mode .search-input:focus {
-  background: #333;
-}
-
-/* Tags */
-.tag {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* บังคับให้ SweetAlert (ตัวโหลด/แจ้งเตือน) อยู่ชั้นบนสุดเสมอ เหนือ Login Modal */
-div:where(.swal2-container) {
-  z-index: 20000 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ddd;
 }

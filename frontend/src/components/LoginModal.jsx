@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
-import { FaUser, FaLock, FaTimes } from 'react-icons/fa';
+import { FaUser, FaLock, FaTimes, FaFingerprint } from 'react-icons/fa';
 
 const LoginModal = ({ isOpen, onClose, onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
@@ -11,7 +11,14 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    Swal.showLoading();
+    Swal.fire({
+      title: 'Processing...',
+      text: 'Please wait a moment',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      background: '#1e1e1e',
+      color: '#fff'
+    });
 
     const baseUrl = 'https://myscheduleapi.onrender.com';
     const endpoint = isRegister ? `${baseUrl}/api/register` : `${baseUrl}/api/login`;
@@ -27,47 +34,57 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
       if (!res.ok) throw new Error(data.message || "Failed");
 
       if (isRegister) {
-        Swal.fire('Success', 'สมัครสมาชิกเรียบร้อย กรุณาล็อกอิน', 'success');
+        Swal.fire({ icon: 'success', title: 'Registration Success!', text: 'Please login to continue.', background: '#1e1e1e', color: '#fff' });
         setIsRegister(false);
         setPassword("");
       } else {
-        Swal.fire({ icon: 'success', title: `ยินดีต้อนรับ ${data.user.username}`, timer: 1500, showConfirmButton: false });
-        // ส่ง user และ token กลับไปที่ App
+        Swal.fire({ icon: 'success', title: `Welcome back, ${data.user.username}`, timer: 1500, showConfirmButton: false, background: '#1e1e1e', color: '#fff' });
         onLogin(data.user, data.token);
       }
     } catch (err) {
-      Swal.fire('Error', err.message || 'Connection Error', 'error');
+      Swal.fire({ icon: 'error', title: 'Oops...', text: err.message, background: '#1e1e1e', color: '#fff' });
     }
   };
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-      background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", zIndex: 9999,
-      display: "flex", justifyContent: "center", alignItems: "center"
-    }}>
-      <div className="card" style={{ width: "350px", position: "relative", textAlign: "center", border: "1px solid rgba(255,255,255,0.2)" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 15, right: 15, background: "none", border: "none", fontSize: "18px", color: "inherit", cursor: "pointer" }}><FaTimes /></button>
-        <h2 style={{ marginBottom: 20 }}>{isRegister ? "Create Account" : "Welcome Back"}</h2>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: "1.2rem" }}><FaTimes /></button>
+        
+        {/* Decorative Icon */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ 
+            width: 70, height: 70, borderRadius: "50%", 
+            background: "linear-gradient(135deg, #ff6b00, #ff9e00)", 
+            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto",
+            boxShadow: "0 0 20px rgba(255, 107, 0, 0.4)" 
+          }}>
+            <FaFingerprint style={{ fontSize: "30px", color: "white" }} />
+          </div>
+        </div>
+
+        <h2 className="modal-title">{isRegister ? "Create Account" : "Member Login"}</h2>
         
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 15, position: "relative" }}>
-            <FaUser style={{ position: "absolute", top: 14, left: 15, opacity: 0.5 }} />
-            <input className="search-input" style={{ paddingLeft: 40 }} type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
+          <div className="input-group">
+            <input className="search-input" type="text" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} required />
+            <FaUser className="input-icon" />
           </div>
-          <div style={{ marginBottom: 20, position: "relative" }}>
-            <FaLock style={{ position: "absolute", top: 14, left: 15, opacity: 0.5 }} />
-            <input className="search-input" style={{ paddingLeft: 40 }} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+          
+          <div className="input-group">
+            <input className="search-input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <FaLock className="input-icon" />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "12px" }}>
-            {isRegister ? "Register" : "Login"}
+
+          <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "10px" }}>
+            {isRegister ? "Sign Up" : "Sign In"}
           </button>
         </form>
 
-        <p style={{ marginTop: 20, fontSize: "14px", opacity: 0.8 }}>
-          {isRegister ? "Already a member?" : "New here?"} 
-          <span onClick={() => setIsRegister(!isRegister)} style={{ color: "var(--primary)", fontWeight: "bold", cursor: "pointer", marginLeft: 5 }}>
-            {isRegister ? "Login" : "Register"}
+        <p style={{ marginTop: 25, fontSize: "0.9rem", color: "#888" }}>
+          {isRegister ? "Already have an account?" : "Don't have an account?"} 
+          <span onClick={() => setIsRegister(!isRegister)} style={{ color: "var(--primary)", fontWeight: "bold", cursor: "pointer", marginLeft: 8, textDecoration: "underline" }}>
+            {isRegister ? "Sign In" : "Register Now"}
           </span>
         </p>
       </div>
