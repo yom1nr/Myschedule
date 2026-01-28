@@ -183,7 +183,7 @@ function App() {
       .catch(console.error);
   }, []);*/
   // 📡 4. โหลดรายวิชา (สูตรใหม่ แก้ Sec สลับ + เรียงวันถูกต้อง)
-  useEffect(() => {
+ /* useEffect(() => {
     fetch('https://myscheduleapi.onrender.com/api/courses')
       .then(res => res.json())
       .then(data => {
@@ -235,6 +235,62 @@ function App() {
           }
           
           return 0; // เหมือนกันเป๊ะทุกประการ
+        });
+
+        setCourses(clean);
+      })
+      .catch(console.error);
+  }, []);*/
+  // 📡 4. โหลดรายวิชา
+  useEffect(() => {
+    fetch('https://myscheduleapi.onrender.com/api/courses')
+      .then(res => res.json())
+      .then(data => {
+        let clean = (Array.isArray(data) ? data : []).map(c => ({
+          _id: c._id, 
+          code: c.code || "N/A", 
+          name: c.name || "Unknown", 
+          credit: parseInt(c.credit || 0), 
+          time: c.time || "-" 
+        }));
+
+        // ฟังก์ชันแปลงเวลาเรียนเป็นตัวเลข (นาทีจากต้นสัปดาห์)
+        const getStartTimes = (timeStr) => {
+            const dayPriority = { "Mo": 1, "Tu": 2, "We": 3, "Th": 4, "Fr": 5, "Sa": 6, "Su": 7 };
+            const regex = /([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/g;
+            let matches = [];
+            let match;
+            while ((match = regex.exec(timeStr)) !== null) {
+                const day = dayPriority[match[1]] || 99;
+                const hour = parseInt(match[2]);
+                const min = parseInt(match[3]);
+                matches.push((day * 24 * 60) + (hour * 60) + min);
+            }
+            return matches.sort((a, b) => a - b); // เรียงเวลาในตัวเองด้วย (เผื่อเขียนสลับ)
+        };
+
+        clean.sort((a, b) => {
+          // 1. เรียงตามรหัสวิชา (A-Z)
+          if (a.code !== b.code) {
+              return a.code.localeCompare(b.code);
+          }
+
+          // 2. ถ้าวิชาเดียวกัน ให้เทียบเวลาเรียน
+          const timesA = getStartTimes(a.time);
+          const timesB = getStartTimes(b.time);
+
+          const maxLen = Math.max(timesA.length, timesB.length);
+          for (let i = 0; i < maxLen; i++) {
+              const valA = timesA[i] !== undefined ? timesA[i] : 999999;
+              const valB = timesB[i] !== undefined ? timesB[i] : 999999;
+              
+              if (valA !== valB) {
+                  return valA - valB; // เวลาต่างกัน เรียงตามเวลา
+              }
+          }
+          
+          // 🔥 3. (จุดที่แก้) ถ้าเวลาเหมือนกันเป๊ะ ให้เรียงตาม "ตัวหนังสือ" (ชื่อห้อง)
+          return a.time.localeCompare(b.time); 
         });
 
         setCourses(clean);
