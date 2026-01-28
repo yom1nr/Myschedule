@@ -125,7 +125,7 @@ function App() {
       .catch(console.error);
   }, []);*/
     // 📡 4. โหลดรายวิชา
-  useEffect(() => {
+ /* useEffect(() => {
     fetch('https://myscheduleapi.onrender.com/api/courses')
       .then(res => res.json())
       .then(data => {
@@ -176,6 +176,65 @@ function App() {
           }
           
           return 0; // เหมือนกันเป๊ะ
+        });
+
+        setCourses(clean);
+      })
+      .catch(console.error);
+  }, []);*/
+  // 📡 4. โหลดรายวิชา (สูตรใหม่ แก้ Sec สลับ + เรียงวันถูกต้อง)
+  useEffect(() => {
+    fetch('https://myscheduleapi.onrender.com/api/courses')
+      .then(res => res.json())
+      .then(data => {
+        let clean = (Array.isArray(data) ? data : []).map(c => ({
+          _id: c._id, 
+          code: c.code || "N/A", 
+          name: c.name || "Unknown", 
+          credit: parseInt(c.credit || 0), 
+          time: c.time || "-" 
+        }));
+
+        // ฟังก์ชันช่วย: แปลงเวลาเรียนทั้งหมดให้เป็นตัวเลขนาที เพื่อเทียบความมากน้อย
+        const getStartTimes = (timeStr) => {
+            const dayPriority = { "Mo": 1, "Tu": 2, "We": 3, "Th": 4, "Fr": 5, "Sa": 6, "Su": 7 };
+            // Regex หา "ทุกช่วงเวลา" ที่มีใน Text (ไม่ว่าจะกี่คาบ)
+            const regex = /([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/g;
+            let matches = [];
+            let match;
+            while ((match = regex.exec(timeStr)) !== null) {
+                const day = dayPriority[match[1]] || 99;
+                const hour = parseInt(match[2]);
+                const min = parseInt(match[3]);
+                // สูตร: (วัน * 1440) + (ชม. * 60) + นาที = ค่าเวลาสะสมจากต้นสัปดาห์
+                matches.push((day * 1440) + (hour * 60) + min);
+            }
+            return matches;
+        };
+
+        clean.sort((a, b) => {
+          // 1. เรียงตามรหัสวิชา (A-Z) ก่อน
+          if (a.code !== b.code) {
+              return a.code.localeCompare(b.code);
+          }
+
+          // 2. ถ้าวิชาเดียวกัน ให้ระเบิดเวลาออกมาเทียบกันทีละช็อต
+          const timesA = getStartTimes(a.time);
+          const timesB = getStartTimes(b.time);
+
+          // วนลูปเทียบทีละคาบ (คาบ 1, คาบ 2, ...)
+          const maxLen = Math.max(timesA.length, timesB.length);
+          for (let i = 0; i < maxLen; i++) {
+              // ถ้าไม่มีคาบเทียบ (เช่น อีกตัวมี 2 คาบ แต่อีกตัวมี 1 คาบ) ให้ถือว่าค่าเป็น infinity (ไปต่อท้าย)
+              const valA = timesA[i] !== undefined ? timesA[i] : 999999; 
+              const valB = timesB[i] !== undefined ? timesB[i] : 999999;
+              
+              if (valA !== valB) {
+                  return valA - valB; // เจอตัวต่างปุ๊บ เรียงเลย (ค่าน้อยกว่าขึ้นก่อน)
+              }
+          }
+          
+          return 0; // เหมือนกันเป๊ะทุกประการ
         });
 
         setCourses(clean);
