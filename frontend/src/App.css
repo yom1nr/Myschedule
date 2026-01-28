@@ -27,9 +27,9 @@ body {
 
 /* --- Container --- */
 .app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  max-width: 100%;      /* ✅ แก้เป็น 98% หรือ 100% ให้เกือบเต็มจอ */
+  margin: 0 auto;      /* จัดกึ่งกลาง */
+  padding: 20px 30px;  /* เว้นขอบซ้ายขวาหน่อย ไม่ให้ชิดเกินไป */
   min-height: 100vh;
 }
 
