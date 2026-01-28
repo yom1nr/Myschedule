@@ -48,18 +48,34 @@ function App() {
     document.body.style.color = theme.text;
   }, [isDarkMode, theme]);
 
-  // 📡 4. โหลดรายวิชา
-  useEffect(() => {
-    fetch('https://myscheduleapi.onrender.com/api/courses')
-      .then(res => res.json())
-      .then(data => {
-        const clean = (Array.isArray(data) ? data : []).map(c => ({
-          _id: c._id, code: c.code || "N/A", name: c.name || "Unknown", credit: parseInt(c.credit || 0), time: c.time || "-"
-        }));
-        setCourses(clean);
-      })
-      .catch(console.error);
-  }, []);
+// 📡 4. โหลดรายวิชา (แก้ตรงนี้)
+useEffect(() => {
+  fetch('https://myscheduleapi.onrender.com/api/courses')
+    .then(res => res.json())
+    .then(data => {
+      let clean = (Array.isArray(data) ? data : []).map(c => ({
+        _id: c._id, 
+        code: c.code || "N/A", 
+        name: c.name || "Unknown", 
+        credit: parseInt(c.credit || 0), 
+        time: c.time || "-" 
+      }));
+
+      // 🔥 เพิ่มโค้ดส่วนนี้: เรียงลำดับข้อมูลให้ถูกต้อง (Sort)
+      clean.sort((a, b) => {
+        // 1. เรียงตามรหัสวิชา (ก-ฮ, A-Z)
+        if (a.code !== b.code) {
+            return a.code.localeCompare(b.code);
+        }
+        // 2. ถ้ารหัสเหมือนกัน ให้เรียงตามเวลา (เช้า -> เย็น)
+        return a.time.localeCompare(b.time);
+      });
+
+      setCourses(clean);
+    })
+    .catch(console.error);
+}, []);
+
 
   // --- Handlers ---
 
