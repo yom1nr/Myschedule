@@ -99,6 +99,7 @@ body {
 .search-input {
   width: 100%;
   padding: 15px;
+  box-sizing: border-box;
   border-radius: 12px;
   border: 2px solid transparent;
   background: #e9ecef;
@@ -125,4 +126,9 @@ body {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
+}
+
+/* บังคับให้ SweetAlert (ตัวโหลด/แจ้งเตือน) อยู่ชั้นบนสุดเสมอ เหนือ Login Modal */
+div:where(.swal2-container) {
+  z-index: 20000 !important;
 }
