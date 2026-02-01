@@ -4,65 +4,88 @@
 * {
   box-sizing: border-box;
   font-family: 'Prompt', sans-serif !important;
-  -webkit-tap-highlight-color: transparent; /* ลบสีฟ้าเวลากดปุ่มบนมือถือ */
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* 🎨 กำหนดตัวแปรสี (Default = Dark Mode) */
 :root {
   --primary: #ff6b00;
-  --bg-dark: #121212;
+  --bg-color: #121212;
+  --bg-gradient: radial-gradient(circle at top, #1a1a1a, #000000); /* พื้นหลังดำ */
   --card-bg: #1e1e1e;
   --text-main: #ffffff;
   --text-muted: #a0a0a0;
   --border-color: #333;
+  --input-bg: #151515;
+  --shadow-color: rgba(0,0,0,0.5);
+}
+
+/* ☀️ กำหนดตัวแปรสีสำหรับ Light Mode */
+body.light-mode {
+  --primary: #ff6b00;
+  --bg-color: #f4f6f9;
+  --bg-gradient: radial-gradient(circle at top, #ffffff, #e3e6ec); /* พื้นหลังขาว-เทาจางๆ */
+  --card-bg: #ffffff;
+  --text-main: #333333;
+  --text-muted: #666666;
+  --border-color: #ddd;
+  --input-bg: #f0f2f5;
+  --shadow-color: rgba(0,0,0,0.1);
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-color);
+  background-image: var(--bg-gradient); /* ใช้ตัวแปรแทนการ Hardcode */
   color: var(--text-main);
-  background-image: radial-gradient(circle at top, #1a1a1a, #000);
   min-height: 100vh;
-  overflow-x: hidden; /* ห้ามเลื่อนซ้ายขวาเกินจอ */
+  overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease; /* เพิ่ม Transition ให้เปลี่ยนสีนุ่มๆ */
 }
 
 /* --- Container --- */
 .app-container {
-  max-width: 100%;      /* ✅ แก้เป็น 98% หรือ 100% ให้เกือบเต็มจอ */
-  margin: 0 auto;      /* จัดกึ่งกลาง */
-  padding: 20px 30px;  /* เว้นขอบซ้ายขวาหน่อย ไม่ให้ชิดเกินไป */
+  max-width: 98%;
+  margin: 0 auto;
+  padding: 20px 30px;
   min-height: 100vh;
 }
 
-/* --- Login Modal (Desktop) --- */
+/* --- Login Modal --- */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.85); /* Overlay ให้ดำเสมอเพื่อโฟกัส */
   backdrop-filter: blur(5px);
   z-index: 9999;
   display: flex; align-items: center; justify-content: center;
 }
 
 .modal-content {
-  background: #252525;
+  background: var(--card-bg); /* เปลี่ยนตามธีม */
   border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 30px;
   width: 90%;
   max-width: 380px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 40px var(--shadow-color);
   text-align: center;
   position: relative;
+  color: var(--text-main);
 }
 
 /* --- Inputs & Buttons --- */
 .input-group { position: relative; margin-bottom: 15px; }
 .search-input {
   width: 100%; padding: 14px 15px 14px 45px;
-  background: #151515; border: 1px solid #333;
-  border-radius: 10px; color: white; font-size: 16px; outline: none;
+  background: var(--input-bg); /* เปลี่ยนตามธีม */
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-size: 16px; outline: none;
+  transition: 0.3s;
 }
-.search-input:focus { border-color: var(--primary); }
-.input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #666; font-size: 18px; }
+.search-input:focus { border-color: var(--primary); background: var(--card-bg); }
+.input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 18px; }
 
 .btn {
   border: none; padding: 14px; border-radius: 10px; cursor: pointer;
@@ -71,7 +94,11 @@ body {
 }
 .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3); }
 .btn-primary:active { transform: scale(0.98); }
-.btn-secondary { background: #333; color: white; border: 1px solid #444; }
+.btn-secondary { 
+  background: var(--input-bg); 
+  color: var(--text-main); 
+  border: 1px solid var(--border-color); 
+}
 .btn-danger { background: rgba(255, 50, 50, 0.1); color: #ff4d4d; border: 1px solid rgba(255, 50, 50, 0.3); }
 
 /* --- Mobile Course List (Cards) --- */
@@ -82,15 +109,17 @@ body {
   padding: 16px;
   border-radius: 12px;
   border-left: 4px solid var(--primary);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px var(--shadow-color);
   position: relative;
+  color: var(--text-main);
 }
 
 .course-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .course-code { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
-.course-credit { font-size: 0.75rem; background: #333; padding: 3px 8px; border-radius: 4px; color: #ccc; }
-.course-name { font-size: 0.95rem; color: #eee; line-height: 1.4; margin-bottom: 8px; font-weight: 500; }
+.course-credit { font-size: 0.75rem; background: var(--input-bg); padding: 3px 8px; border-radius: 4px; color: var(--text-muted); }
+.course-name { font-size: 0.95rem; color: var(--text-main); line-height: 1.4; margin-bottom: 8px; font-weight: 500; }
 .course-time { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+
 .add-btn-mobile {
   position: absolute; right: 15px; bottom: 15px;
   background: #28a745; color: white; border: none;
@@ -102,59 +131,37 @@ body {
 /* Helpers */
 .desktop-only { display: block; }
 .mobile-only { display: none; }
+.card { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); } /* Fix for general cards */
+
+/* Table Styling Override */
+.modern-table th { background: #333; color: #fff; } /* Header ตารางให้เข้มตลอดเวลาเพื่อให้อ่านง่าย */
+.modern-table td { color: var(--text-main); border-bottom: 1px solid var(--border-color); }
 
 /* =========================================
-   📱 MOBILE RESPONSIVE FIXES (แก้ตรงนี้)
+   📱 MOBILE RESPONSIVE FIXES
    ========================================= */
 @media (max-width: 768px) {
-  .desktop-only { display: none !important; } /* ซ่อนตารางและ Grid ใหญ่บนมือถือ */
-  .mobile-only { display: block !important; } /* โชว์การ์ดแทน */
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block !important; }
   
   .app-container { padding: 15px; padding-top: 10px; }
 
-  /* ✅ 1. Login Modal แบบ Full Screen */
-  .modal-overlay {
-    background: #121212; /* พื้นหลังทึบเลย */
-    align-items: flex-start; /* เริ่มจากบนสุด */
-  }
+  /* Login Modal Full Screen */
+  .modal-overlay { background: var(--bg-color); align-items: flex-start; }
   .modal-content {
-    width: 100%;
-    height: 100%; /* เต็มจอ */
-    max-width: none;
-    border-radius: 0;
-    border: none;
-    background: #121212;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* เนื้อหากลางจอ */
+    width: 100%; height: 100%; max-width: none;
+    border-radius: 0; border: none;
+    background: var(--bg-color);
+    display: flex; flex-direction: column; justify-content: center;
     padding: 40px 25px;
   }
   
-  /* ปรับปุ่มปิด Modal ให้กดง่ายขึ้น */
   .modal-content button[style*="absolute"] {
-    top: 30px !important;
-    right: 20px !important;
-    font-size: 2rem !important;
-    color: white !important;
-    background: rgba(255,255,255,0.1) !important;
-    width: 40px; height: 40px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+    background: var(--input-bg) !important;
+    color: var(--text-main) !important;
   }
 
-  /* ✅ 2. Header จัดระเบียบ */
-  header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-  header > div:last-child {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* แบ่งปุ่มละครึ่งจอ */
-    gap: 10px;
-  }
+  header { flex-direction: column; align-items: flex-start; gap: 15px; }
+  header > div:last-child { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   header h1 { font-size: 1.6rem; }
-  
-  /* ช่องค้นหา */
-  .search-input { font-size: 14px; padding: 12px 15px 12px 40px; }
 }
