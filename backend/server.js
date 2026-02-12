@@ -20,16 +20,15 @@ mongoose.connect(mongoURI)
 
 // --- 2. สร้าง Schema ---
 const courseSchema = new mongoose.Schema({
-  code: String, name: String, credit: Number, time: String
+  code: String, name: String, credit: Number, time: String,
+  semester: { type: String, default: "3/2568" }
 });
 const Course = mongoose.model('Course', courseSchema);
 
-// 🔥 แก้ไข: เอา studentID ออก
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  // studentID: String,  <-- ลบทิ้งไปแล้ว
-  mySchedule: []
+  mySchedule: { type: mongoose.Schema.Types.Mixed, default: {} }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -38,8 +37,18 @@ const User = mongoose.model('User', userSchema);
 
 app.get('/api/courses', async (req, res) => {
   try {
-    const courses = await Course.find();
+    const { semester } = req.query;
+    const filter = semester ? { semester } : {};
+    const courses = await Course.find(filter);
     res.json(courses);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 🟢 API ดึงรายการภาคการศึกษาทั้งหมด
+app.get('/api/semesters', async (req, res) => {
+  try {
+    const semesters = await Course.distinct('semester');
+    res.json(semesters);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -47,19 +56,18 @@ app.get('/api/courses', async (req, res) => {
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body; // <-- รับแค่ 2 ค่า
-    
+
     const existingUser = await User.findOne({ username });
     if (existingUser) return res.status(400).json({ message: "ชื่อผู้ใช้นี้ถูกใช้ไปแล้ว" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({ 
-      username, 
-      password: hashedPassword, 
-      // studentID, <-- ไม่บันทึกแล้ว
-      mySchedule: [] 
+    const newUser = new User({
+      username,
+      password: hashedPassword,
+      mySchedule: {}
     });
-    
+
     await newUser.save();
     console.log(`👤 สมาชิกใหม่: ${username}`);
     res.json({ message: "สมัครสมาชิกสำเร็จ!" });
@@ -80,19 +88,23 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
 
     // ส่งกลับโดยไม่มี studentID
-    res.json({ 
-      token, 
-      user: { id: user._id, username: user.username, mySchedule: user.mySchedule } 
+    res.json({
+      token,
+      user: { id: user._id, username: user.username, mySchedule: user.mySchedule }
     });
     console.log(`🔑 Login สำเร็จ: ${username}`);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 🟣 API บันทึกตารางเรียน -> เหมือนเดิม
+// 🟣 API บันทึกตารางเรียน (แยกตามภาคการศึกษา)
 app.post('/api/save-schedule', async (req, res) => {
   try {
-    const { username, cart } = req.body;
-    await User.findOneAndUpdate({ username }, { mySchedule: cart });
+    const { username, cart, semester } = req.body;
+    if (!semester) return res.status(400).json({ message: "กรุณาระบุภาคการศึกษา" });
+    await User.findOneAndUpdate(
+      { username },
+      { $set: { [`mySchedule.${semester}`]: cart } }
+    );
     res.json({ message: "บันทึกตารางเรียบร้อย!" });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

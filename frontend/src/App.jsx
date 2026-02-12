@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import Swal from 'sweetalert2';
-import { FaUser, FaSignOutAlt, FaMoon, FaSun, FaCamera, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaMoon, FaSun, FaCamera, FaPlus, FaTimes, FaCalendarAlt } from 'react-icons/fa';
 
 // Import CSS และ Component ที่แยกไว้
 import './App.css';
@@ -19,7 +19,33 @@ function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const scheduleRef = useRef(null);
 
+  // 📆 Semester System
+  const [semesters, setSemesters] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState(() => localStorage.getItem("selectedSemester") || "");
+
   const theme = isDarkMode ? themes.dark : themes.light;
+
+  // 📆 โหลดรายการภาคการศึกษา
+  useEffect(() => {
+    fetch('https://myscheduleapi.onrender.com/api/semesters')
+      .then(res => res.json())
+      .then(data => {
+        const sorted = (Array.isArray(data) ? data : []).sort();
+        setSemesters(sorted);
+        // ถ้ายังไม่เคยเลือก ให้เลือกเทอมล่าสุด
+        if (!localStorage.getItem("selectedSemester") && sorted.length > 0) {
+          setSelectedSemester(sorted[sorted.length - 1]);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  // จำเทอมที่เลือกไว้ใน localStorage
+  useEffect(() => {
+    if (selectedSemester) {
+      localStorage.setItem("selectedSemester", selectedSemester);
+    }
+  }, [selectedSemester]);
 
   // 🔄 1. ระบบจำ Login (Persistent Login)
   useEffect(() => {
@@ -29,9 +55,11 @@ function App() {
     if (storedUser && storedToken) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      setCart(parsedUser.mySchedule || []);
+      // โหลด cart จาก mySchedule ของเทอมที่เลือก
+      const schedule = parsedUser.mySchedule || {};
+      setCart(schedule[selectedSemester] || []);
     }
-  }, []);
+  }, [selectedSemester]);
 
   // 📱 2. เช็คขนาดหน้าจอ (Mobile Detection)
   useEffect(() => {
@@ -48,9 +76,10 @@ function App() {
     document.body.style.color = theme.text;
   }, [isDarkMode, theme]);
 
-  // 📡 4. โหลดรายวิชา
+  // 📡 4. โหลดรายวิชา (ตามเทอมที่เลือก)
   useEffect(() => {
-    fetch('https://myscheduleapi.onrender.com/api/courses')
+    if (!selectedSemester) return;
+    fetch(`https://myscheduleapi.onrender.com/api/courses?semester=${encodeURIComponent(selectedSemester)}`)
       .then(res => res.json())
       .then(data => {
         let clean = (Array.isArray(data) ? data : []).map(c => ({
@@ -73,37 +102,28 @@ function App() {
                 const min = parseInt(match[3]);
                 matches.push((day * 24 * 60) + (hour * 60) + min);
             }
-            return matches.sort((a, b) => a - b); // เรียงเวลาในตัวเองด้วย (เผื่อเขียนสลับ)
+            return matches.sort((a, b) => a - b);
         };
 
         clean.sort((a, b) => {
-          // 1. เรียงตามรหัสวิชา (A-Z)
           if (a.code !== b.code) {
               return a.code.localeCompare(b.code);
           }
-
-          // 2. ถ้าวิชาเดียวกัน ให้เทียบเวลาเรียน
           const timesA = getStartTimes(a.time);
           const timesB = getStartTimes(b.time);
-
           const maxLen = Math.max(timesA.length, timesB.length);
           for (let i = 0; i < maxLen; i++) {
               const valA = timesA[i] !== undefined ? timesA[i] : 999999;
               const valB = timesB[i] !== undefined ? timesB[i] : 999999;
-              
-              if (valA !== valB) {
-                  return valA - valB; // เวลาต่างกัน เรียงตามเวลา
-              }
+              if (valA !== valB) return valA - valB;
           }
-          
-          // 🔥 3. (จุดที่แก้) ถ้าเวลาเหมือนกันเป๊ะ ให้เรียงตาม "ตัวหนังสือ" (ชื่อห้อง)
           return a.time.localeCompare(b.time); 
         });
 
         setCourses(clean);
       })
       .catch(console.error);
-  }, []);
+  }, [selectedSemester]);
 
 
 
@@ -111,7 +131,9 @@ function App() {
 
   const handleLogin = (userData, token) => {
     setUser(userData);
-    setCart(userData.mySchedule || []);
+    // โหลด cart จาก mySchedule ของเทอมที่เลือก
+    const schedule = userData.mySchedule || {};
+    setCart(schedule[selectedSemester] || []);
     setShowLoginModal(false);
     localStorage.setItem("userToken", token);
     localStorage.setItem("userProfile", JSON.stringify(userData));
@@ -156,16 +178,17 @@ function App() {
     });
   };
 
-  // Sync Cart to Server
+  // Sync Cart to Server (แยกตามเทอม)
   useEffect(() => {
-    if (user && cart.length >= 0) {
+    if (user && selectedSemester) {
       fetch('https://myscheduleapi.onrender.com/api/save-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user.username, cart: cart })
+        body: JSON.stringify({ username: user.username, cart: cart, semester: selectedSemester })
       }).catch(err => console.error("Save failed", err));
       
-      const updatedUser = { ...user, mySchedule: cart };
+      const updatedSchedule = { ...(user.mySchedule || {}), [selectedSemester]: cart };
+      const updatedUser = { ...user, mySchedule: updatedSchedule };
       localStorage.setItem("userProfile", JSON.stringify(updatedUser));
       setUser(updatedUser); 
     }
@@ -217,6 +240,36 @@ function App() {
             {user ? `👋 ${user.username}` : "Guest Mode (ข้อมูลไม่ถูกบันทึก)"}
           </p>
         </div>
+
+        {/* 📆 Semester Selector */}
+        {semesters.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FaCalendarAlt style={{ color: "#FF7F00" }} />
+            <select
+              value={selectedSemester}
+              onChange={e => {
+                const newSem = e.target.value;
+                setSelectedSemester(newSem);
+                // โหลด cart จาก user data ของเทอมที่เลือก (ไม่ใช่ clear เป็น [])
+                if (user) {
+                  const schedule = user.mySchedule || {};
+                  setCart(schedule[newSem] || []);
+                } else {
+                  setCart([]);
+                }
+              }}
+              style={{
+                padding: "8px 12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.2)",
+                background: isDarkMode ? "#2d2d2d" : "#fff", color: isDarkMode ? "#e0e0e0" : "#333",
+                fontSize: "0.9rem", fontWeight: "bold", cursor: "pointer", outline: "none"
+              }}
+            >
+              {semesters.map(s => (
+                <option key={s} value={s}>เทอม {s}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button className="btn btn-secondary btn-icon" onClick={() => setIsDarkMode(!isDarkMode)}>

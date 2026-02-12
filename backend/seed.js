@@ -10,11 +10,14 @@ mongoose.connect(mongoURI)
   .catch(err => console.log(err));
 
 // Schema (ต้องตรงกับ Database)
+const SEMESTER = "3/2568"; // ← กำหนดเทอมที่จะ seed
+
 const courseSchema = new mongoose.Schema({
   code: String,
   name: String,
   credit: String,
-  time: String
+  time: String,
+  semester: { type: String, default: SEMESTER }
 });
 
 const Course = mongoose.model('Course', courseSchema);
@@ -23,11 +26,11 @@ const importData = async () => {
   try {
     // 1. อ่านไฟล์ CSV
     const data = fs.readFileSync('./courses.csv', 'utf-8');
-    
+
     // 2. แปลง CSV เป็น JSON Object
     // แยกบรรทัด -> กรองบรรทัดว่าง -> แปลงข้อมูล
     const lines = data.split('\n').filter(line => line.trim() !== '');
-    
+
     const coursesData = lines.map(line => {
       // เทคนิค: แยกด้วย string "," (ลูกน้ำที่อยู่ระหว่างฟันหนู)
       // เพื่อป้องกันกรณีในชื่อวิชามีลูกน้ำ
