@@ -131,7 +131,14 @@ body {
 /* Helpers */
 .desktop-only { display: block; }
 .mobile-only { display: none; }
-.card { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); } /* Fix for general cards */
+.card { 
+  background: var(--card-bg); 
+  color: var(--text-main); 
+  border: 1px solid var(--border-color); 
+  border-radius: 16px; 
+  padding: 20px; 
+  box-shadow: 0 4px 20px var(--shadow-color);
+}
 
 /* Table Styling Override */
 .modern-table th { background: #333; color: #fff; } /* Header ตารางให้เข้มตลอดเวลาเพื่อให้อ่านง่าย */

@@ -13,6 +13,10 @@
 
 🔗 **Production:** [myscheduleapi.onrender.com](https://myscheduleapi.onrender.com)
 
+<p align="center">
+  <img src="docs/schedule-preview.png" alt="Schedule Table Preview" width="100%" />
+</p>
+
 ---
 
 ## 📑 Table of Contents
