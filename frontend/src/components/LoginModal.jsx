@@ -6,11 +6,17 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ตรวจสอบรหัสผ่านตรงกันก่อน (เฉพาะตอนสมัคร)
+    if (isRegister && password !== confirmPassword) {
+      return Swal.fire({ icon: 'error', title: 'รหัสผ่านไม่ตรงกัน', text: 'กรุณากรอกรหัสผ่านให้ตรงกันทั้ง 2 ช่อง', background: '#1e1e1e', color: '#fff' });
+    }
     Swal.fire({
       title: 'Processing...',
       text: 'Please wait a moment',
@@ -37,6 +43,7 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
         Swal.fire({ icon: 'success', title: 'Registration Success!', text: 'Please login to continue.', background: '#1e1e1e', color: '#fff' });
         setIsRegister(false);
         setPassword("");
+        setConfirmPassword("");
       } else {
         Swal.fire({ icon: 'success', title: `Welcome back, ${data.user.username}`, timer: 1500, showConfirmButton: false, background: '#1e1e1e', color: '#fff' });
         onLogin(data.user, data.token);
@@ -76,6 +83,13 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
             <FaLock className="input-icon" />
           </div>
 
+          {isRegister && (
+            <div className="input-group">
+              <input className="search-input" type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+              <FaLock className="input-icon" />
+            </div>
+          )}
+
           <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "10px" }}>
             {isRegister ? "Sign Up" : "Sign In"}
           </button>
@@ -83,7 +97,7 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
 
         <p style={{ marginTop: 25, fontSize: "0.9rem", color: "#888" }}>
           {isRegister ? "Already have an account?" : "Don't have an account?"} 
-          <span onClick={() => setIsRegister(!isRegister)} style={{ color: "var(--primary)", fontWeight: "bold", cursor: "pointer", marginLeft: 8, textDecoration: "underline" }}>
+          <span onClick={() => { setIsRegister(!isRegister); setPassword(""); setConfirmPassword(""); }} style={{ color: "var(--primary)", fontWeight: "bold", cursor: "pointer", marginLeft: 8, textDecoration: "underline" }}>
             {isRegister ? "Sign In" : "Register Now"}
           </span>
         </p>
