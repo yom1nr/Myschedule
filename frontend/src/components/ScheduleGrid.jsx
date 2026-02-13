@@ -55,7 +55,7 @@ const ScheduleGrid = ({ cart, getSection, captureRef, theme, isMobile }) => {
                     <div style={{ background: color.solid, width: "4px", borderRadius: "4px", flexShrink: 0 }}></div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{item.course.code}</div>
-                      <div style={{ fontSize: "0.82rem", opacity: 0.7, marginTop: 2 }}>{item.course.name}</div>
+                      <div style={{ fontSize: "0.82rem", opacity: 0.7, marginTop: 2, wordBreak: "break-word", lineHeight: "1.3" }}>{item.course.name}</div>
                       <div style={{ display: "flex", gap: "15px", marginTop: "6px", fontSize: "0.75rem", opacity: 0.55 }}>
                         <span style={{display:'flex', alignItems:'center', gap:4}}><FaClock /> {item.startH}:{item.startM.toString().padStart(2,'0')} - {item.endH}:{item.endM.toString().padStart(2,'0')}</span>
                         <span style={{display:'flex', alignItems:'center', gap:4}}><FaMapMarkerAlt /> {item.room}</span>

@@ -165,12 +165,23 @@ body {
 
 
 /* Helpers */
+/* Helpers */
 .desktop-only {
   display: block;
 }
 
 .mobile-only {
   display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block !important;
+  }
 }
 
 .card {
