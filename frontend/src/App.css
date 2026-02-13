@@ -370,6 +370,16 @@ body {
   transform: scale(0.92);
 }
 
+.glass-btn-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.glass-btn-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
 .semester-selector-glass {
   display: flex;
   align-items: center;
