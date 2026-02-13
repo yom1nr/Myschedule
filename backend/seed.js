@@ -12,7 +12,7 @@ mongoose.connect(mongoURI)
 // Schema (ต้องตรงกับ Database)
 // รับค่าจาก Command Line: node seed.js <SEMESTER> <FILENAME>
 // ตัวอย่าง: node seed.js "1/2569" "courses_1_2569.json"
-const SEMESTER = process.argv[2] || "3/2568";
+const SEMESTER = process.argv[2] || "2/2568";
 const FILENAME = process.argv[3] || "courses.json";
 
 console.log(`📌 Seeding data for Semester: ${SEMESTER} from file: ${FILENAME}`);

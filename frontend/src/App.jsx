@@ -247,6 +247,8 @@ useEffect(() => {
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleLogin} />
 
       {/* Header */}
+      {/* Header (Desktop) */}
+      {!isMobile && (
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h1 style={{ margin: 0, background: "linear-gradient(to right, #ff3c00ff, #ff0000ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
@@ -307,16 +309,79 @@ useEffect(() => {
           )}
         </div>
       </header>
-
-      {/* 🟢 Mobile Only: ปุ่ม Save รูป & Credit อยู่บรรทัดใหม่ */}
-      {isMobile && (
-         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, gap: 10 }}>
-            <div style={{ flex:1, padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.1)", textAlign:"center", border: "1px solid rgba(255,255,255,0.1)" }}>
-               Credits: <span style={{ color: totalCredits > 22 ? "red" : "#FF7F00", fontWeight: "bold" }}>{totalCredits}</span>
-            </div>
-            <button className="btn btn-primary" style={{flex:1}} onClick={handleSaveImage}><FaCamera /> Save</button>
-         </div>
       )}
+
+      {/* 🎨 Mobile Header - ปรับให้กระชับและสวยขึ้น */}
+      {isMobile && (
+        <div className="mobile-header">
+          <div className="mobile-header-top">
+            <div className="user-info">
+              <div className="avatar">
+                {user ? user.username.charAt(0).toUpperCase() : '?'}
+              </div>
+              <div className="user-details">
+                <h2 className="app-title">Planer</h2>
+                <p className="user-name">{user ? user.username : 'Guest'}</p>
+              </div>
+            </div>
+            
+            <div className="header-actions">
+              <button className="icon-btn" onClick={() => setIsDarkMode(!isDarkMode)}>
+                {isDarkMode ? <FaSun /> : <FaMoon />}
+              </button>
+              {user ? (
+                <button className="icon-btn logout" onClick={handleLogout}>
+                  <FaSignOutAlt />
+                </button>
+              ) : (
+                <button className="icon-btn login" onClick={() => setShowLoginModal(true)}>
+                  <FaUser />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Semester Selector - Mobile */}
+          {semesters.length > 0 && (
+            <div className="semester-selector-mobile">
+              <FaCalendarAlt />
+              <select
+                value={selectedSemester}
+                onChange={e => {
+                  const newSem = e.target.value;
+                  setSelectedSemester(newSem);
+                  if (user) {
+                    const schedule = user.mySchedule || {};
+                    setCart(schedule[newSem] || []);
+                  } else {
+                    setCart([]);
+                  }
+                }}
+              >
+                {semesters.map(s => (
+                  <option key={s} value={s}>เทอม {s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Credits & Save Button */}
+          <div className="mobile-stats">
+            <div className="credit-badge">
+              <span className="label">หน่วยกิต</span>
+              <span className={`value ${totalCredits > 22 ? 'over-limit' : ''}`}>
+                {totalCredits}/22
+              </span>
+            </div>
+            <button className="save-btn" onClick={handleSaveImage}>
+              <FaCamera />
+              <span>บันทึกภาพ</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+
 
       {/* 🟢 Main Schedule Display */}
       {/* PC: Grid ใหญ่ */}
@@ -324,19 +389,24 @@ useEffect(() => {
          <ScheduleGrid cart={cart} getSection={getSection} captureRef={scheduleRef} theme={theme} isMobile={false} />
       </div>
 
-      {/* Mobile: Grid แบบ List เรียงวัน */}
-      {isMobile && cart.length > 0 && (
-        <div ref={scheduleRef} style={{background: theme.bg, padding: 10, borderRadius: 10}}> 
-           {/* Wrap ด้วย div ref เพื่อให้ capture รูปในมือถือได้ */}
-           <h3 style={{color: "var(--primary)", marginTop:0}}>ตารางเรียนของฉัน</h3>
-           <ScheduleGrid cart={cart} getSection={getSection} captureRef={null} theme={theme} isMobile={true} />
-        </div>
-      )}
-
-      {/* Mobile: แสดงข้อความถ้ายังไม่เลือกวิชา */}
-      {isMobile && cart.length === 0 && (
-        <div style={{textAlign:"center", padding:"30px", opacity:0.6}}>
-           ยังไม่มีรายวิชาในตาราง
+      {/* 🎨 Mobile Schedule Display - ปรับให้สวยขึ้น */}
+      {isMobile && (
+        <div className="mobile-schedule-section">
+          {cart.length > 0 ? (
+            <div ref={scheduleRef} className="mobile-schedule-wrapper">
+              <div className="section-header">
+                <h3>ตารางเรียน</h3>
+                <span className="course-count">{cart.length} วิชา</span>
+              </div>
+              <ScheduleGrid cart={cart} getSection={getSection} captureRef={null} theme={theme} isMobile={true} />
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">📚</div>
+              <h3>ยังไม่มีรายวิชา</h3>
+              <p>เลือกรายวิชาด้านล่างเพื่อเพิ่มลงในตาราง</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -357,6 +427,7 @@ useEffect(() => {
       )}
 
       {/* Search Input */}
+      {!isMobile && (
       <div className="input-group">
          <input 
            type="text" 
@@ -366,33 +437,77 @@ useEffect(() => {
            onChange={e => setSearchText(e.target.value)} 
          />
       </div>
+      )}
+
+      {/* 🎨 Mobile Course Search - ปรับให้สวยขึ้น */}
+      {isMobile && (
+        <div className="mobile-search-section">
+          <div className="search-header">
+            <h3>รายวิชา</h3>
+            <span className="result-count">{filtered.length} รายการ</span>
+          </div>
+          <div className="search-box-mobile">
+            <span className="search-icon">🔍</span>
+            <input 
+              type="text"
+              placeholder="ค้นหารหัสวิชา หรือชื่อวิชา..."
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+            />
+            {searchText && (
+              <button className="clear-search" onClick={() => setSearchText('')}>
+                <FaTimes />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 🟢 Course List Display */}
       
       {/* 1. Mobile View (Card List) */}
-      <div className="mobile-only mobile-course-list">
-        {filtered.slice(0, 50).map(c => (
-          <div key={c._id} className="course-card">
-            <div className="course-header">
-              <span className="course-code">{c.code}</span>
-              <span className="course-credit">{c.credit} Cr.</span>
-            </div>
-            <div className="course-name">{c.name}</div>
-            <div className="course-time">🕒 {c.time}</div>
-            <div className="course-time" style={{marginTop:5}}>🎓 Sec {getSection(c)}</div>
-            
-            {/* ปุ่มลบ (ถ้ามีในตาราง) / ปุ่มเพิ่ม (ถ้ายังไม่มี) */}
-            {cart.find(item => item._id === c._id) ? (
-               <button className="add-btn-mobile" style={{background:"#dc3545", boxShadow:"0 4px 12px rgba(220, 53, 69, 0.5)"}} onClick={() => removeFromCart(c._id)}>
-                  <FaTimes />
-               </button>
-            ) : (
-               <button className="add-btn-mobile" onClick={() => addToCart(c)}>
-                  <FaPlus />
-               </button>
-            )}
-          </div>
-        ))}
+      {/* 🎨 Mobile Course List - ปรับ Card ให้สวยขึ้น */}
+      <div className="mobile-only">
+        <div className="mobile-course-grid">
+          {filtered.slice(0, 50).map(c => {
+            const isInCart = cart.find(item => item._id === c._id);
+            return (
+              <div key={c._id} className={`course-card-mobile ${isInCart ? 'in-cart' : ''}`}>
+                <div className="card-header">
+                  <div className="course-code-badge">{c.code}</div>
+                  <div className="course-meta">
+                    <span className="credit-chip">{c.credit} หน่วยกิต</span>
+                    <span className="section-chip">กลุ่ม {getSection(c)}</span>
+                  </div>
+                </div>
+                
+                <h4 className="course-title">{c.name}</h4>
+                
+                <div className="course-info">
+                  <div className="info-row">
+                    <span className="icon">🕐</span>
+                    <span className="text">{c.time}</span>
+                  </div>
+                </div>
+
+                <button 
+                  className={`action-btn ${isInCart ? 'remove' : 'add'}`}
+                  onClick={() => isInCart ? removeFromCart(c._id) : addToCart(c)}
+                >
+                  {isInCart ? (
+                    <>
+                      <FaTimes /> ลบออก
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus /> เพิ่มวิชา
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* 2. PC View (Table) */}
