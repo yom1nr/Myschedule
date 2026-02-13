@@ -350,14 +350,22 @@ useEffect(() => {
                 </div>
               )}
               
-              <button className="glass-btn-icon" onClick={() => setIsDarkMode(!isDarkMode)}>
-                {isDarkMode ? <FaSun /> : <FaMoon />}
+              <button 
+                className="glass-btn-icon" 
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {isDarkMode ? <FaSun size={20} color="#FFD700" /> : <FaMoon size={20} color="#fff" />}
               </button>
               
               {user && (
-                 <button className="glass-btn-icon logout" onClick={handleLogout}>
-                   <FaSignOutAlt />
-                 </button>
+                <button 
+                  className="glass-btn-icon logout" 
+                  onClick={handleLogout}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <FaSignOutAlt size={20} color="#ffa9a9ff" />
+                </button>
               )}
             </div>
           </div>
@@ -434,36 +442,56 @@ useEffect(() => {
            <span className="badge">{filtered.length}</span>
         </div>
 
-        {/* Course List */}
-        <div className="mobile-course-list">
            {filtered.slice(0, 50).map(c => {
              const isInCart = cart.find(item => item._id === c._id);
+             
+             // Extract time slots manually if possible, or just split by spacing/pattern
+             // Example time: "Mo09:00-12:00 B6101-A Fr13:00-16:00 B6101-A"
+             // Regex to split: Look for Day patterns (Mo, Tu, etc.)
+             const timeSlots = c.time.match(/([A-Ze][a-z])\d{2}:\d{2}-\d{2}:\d{2}(\s+[A-Za-z0-9\-\.]+)?/g) || [c.time];
+
              return (
-               <div key={c._id} className={`glass-course-card ${isInCart ? 'active' : ''}`}>
-                 <div className="card-left">
-                   <div className="course-code-badge">{c.code}</div>
-                   <div className="course-name">{c.name}</div>
-                   <div className="course-meta">
-                      <span>{c.credit} หน่วยกิต</span>
-                      <span className="dot">•</span>
-                      <span>Sec {getSection(c)}</span>
-                   </div>
+               <div key={c._id} className={`mobile-course-card ${isInCart ? 'active' : ''}`}>
+                 {/* Header */}
+                 <div className="mobile-card-header">
+                   <div className="course-code-pill">{c.code}</div>
+                   <div className="course-name-text">{c.name}</div>
                  </div>
-                 
-                 <div className="card-right">
-                    <div className="time-display">{c.time}</div>
-                    <button 
-                      className={`action-btn-glass ${isInCart ? 'remove' : 'add'}`}
+
+                 {/* Time Badges */}
+                 <div className="time-badges-container">
+                   {timeSlots.map((slot, idx) => (
+                     <div key={idx} className="time-badge">
+                       {slot.trim()}
+                     </div>
+                   ))}
+                 </div>
+
+                 {/* Footer */}
+                 <div className="mobile-card-footer">
+                   <div className="course-info-text">
+                     {c.credit} หน่วยกิต · Sec {getSection(c)}
+                   </div>
+                   
+                   <button 
+                      className={`add-btn-large ${isInCart ? 'remove' : 'add'}`}
                       onClick={() => isInCart ? removeFromCart(c._id) : addToCart(c)}
-                    >
-                      {isInCart ? <FaTimes /> : <FaPlus />}
-                    </button>
+                   >
+                      {isInCart ? (
+                        <>
+                          <FaTimes size={16} /> ลบ
+                        </>
+                      ) : (
+                        <>
+                          <FaPlus size={16} /> เพิ่ม
+                        </>
+                      )}
+                   </button>
                  </div>
                </div>
              );
            })}
-        </div>
-      </div>
+         </div>
     )}
 
     {/* ========== PC SEARCH INPUT ========== */}

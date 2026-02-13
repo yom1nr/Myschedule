@@ -233,7 +233,7 @@ body {
   --mobile-bg: #121212;
   --glass-bg: rgba(30, 30, 30, 0.65);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --accent-gradient: linear-gradient(135deg, #FF7F00, #FFD700);
+  --accent-gradient: linear-gradient(135deg, #ff5100, #ff0000);
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.6);
 }
@@ -339,18 +339,25 @@ body {
 }
 
 .glass-btn-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 16px;
-  backdrop-filter: blur(4px);
-  transition: all 0.2s;
+  width: 40px;
+  /* ขนาดความกว้างปุ่ม */
+  height: 40px;
+  /* ขนาดความสูงปุ่ม */
+  border-radius: 12px;
+  /* ความมนของขอบ */
+  background: rgba(255, 255, 255, 0.1);
+  /* สีพื้นหลังโปร่งแสง */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  /* บังคับให้ไอคอนเป็นสีขาว */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  /* รีเซ็ต padding ป้องกันไอคอนเบี้ยว */
 }
 
 .glass-btn-icon.logout {
@@ -608,4 +615,169 @@ body {
   .brand-title {
     font-size: 22px;
   }
+}
+
+/* ========================================
+   🚀 NEW MOBILE CARD REDESIGN
+   ======================================== */
+
+.mobile-course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 30px;
+  /* Space for FAB or bottom nav if any */
+}
+
+.mobile-course-card {
+  background: #18181b;
+  /* Darker, close to black/zinc-900 */
+  border-radius: 20px;
+  padding: 16px;
+  position: relative;
+  /* For absolute positioning if needed */
+  border: 1px solid #27272a;
+  /* Subtle border */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-course-card.active {
+  border: 1px solid rgba(255, 127, 0, 0.5);
+  box-shadow: 0 0 15px rgba(255, 127, 0, 0.15);
+}
+
+/* --- Header: Code Pill + Name --- */
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.course-code-pill {
+  background: #2a1b0aff;
+  /* Dark Orange/Brown background */
+  color: #ff9f1c;
+  /* Bright Orange text */
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.course-name-text {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: right;
+  line-height: 1.3;
+  flex: 1;
+  word-break: break-word;
+  text-transform: uppercase;
+  /* Prototype looks uppercase */
+}
+
+/* --- Body: Time Badges --- */
+.time-badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  /* Auto-wrap for "auto-shrink" effect */
+  gap: 6px;
+}
+
+.time-badge {
+  background: #27272a;
+  /* Gray-ish */
+  color: #a1a1aa;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-family: monospace, sans-serif;
+  /* Monospace for numbers looks neat */
+}
+
+/* --- Footer: Credits + Action Button --- */
+.mobile-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.course-info-text {
+  color: #71717a;
+  /* Muted text */
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* --- Buttons: Add/Remove (Enlarged & Styled) --- */
+.add-btn-large {
+  min-width: 80px;
+  /* Wider for text */
+  height: 40px;
+  /* Slightly shorter */
+  padding: 0 16px;
+  /* Horizontal padding */
+  border-radius: 12px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* Space between icon and text */
+  cursor: pointer;
+  background: linear-gradient(135deg, #1eff00, #009c00);
+  color: white;
+  font-size: 16px;
+  /* Readable text */
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(255, 127, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.add-btn-large::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.add-btn-large:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 6px rgba(255, 127, 0, 0.3);
+}
+
+.add-btn-large.remove {
+  background: linear-gradient(135deg, #ff453a, #ff3b30);
+  box-shadow: 0 4px 12px rgba(255, 69, 58, 0.4);
+  color: #fff;
+}
+
+.add-btn-large.remove:active {
+  box-shadow: 0 2px 6px rgba(255, 69, 58, 0.3);
+}
+
+/* Fix Hero Main Action too */
+.hero-main-action {
+  background: linear-gradient(135deg, #FF7F00, #FFD700);
+  box-shadow: 0 8px 25px rgba(255, 127, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
