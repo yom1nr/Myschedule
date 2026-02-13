@@ -76,7 +76,7 @@ function App() {
     document.body.style.color = theme.text;
   }, [isDarkMode, theme]);
 
-  // 📡 4. โหลดรายวิชา (ตามเทอมที่เลือก)
+ // 📡 4. โหลดรายวิชา (ตามเทอมที่เลือก)
 useEffect(() => {
   if (!selectedSemester) return;
   fetch(`https://myscheduleapi.onrender.com/api/courses?semester=${encodeURIComponent(selectedSemester)}`)
@@ -249,8 +249,8 @@ useEffect(() => {
       {/* Header */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0, background: "linear-gradient(to right, #FF7F00, #FFD700)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            Planer by Yom1nr
+          <h1 style={{ margin: 0, background: "linear-gradient(to right, #ff3c00ff, #ff0000ff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            PlanerX
           </h1>
           <p style={{ margin: "5px 0", opacity: 0.7, fontSize: "0.9rem" }}>
             {user ? `👋 ${user.username}` : "Guest Mode (ข้อมูลไม่ถูกบันทึก)"}
