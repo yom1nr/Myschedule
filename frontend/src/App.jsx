@@ -87,7 +87,9 @@ function App() {
           code: c.code || "N/A", 
           name: c.name || "Unknown", 
           credit: parseInt(c.credit || 0), 
-          time: c.time || "-" 
+          credit: parseInt(c.credit || 0), 
+          time: c.time || "-",
+          group: c.group || null // รับค่า group (ถ้ามี)
         }));
 
         // ฟังก์ชันแปลงเวลาเรียนเป็นตัวเลข (นาทีจากต้นสัปดาห์)
@@ -222,7 +224,12 @@ function App() {
     }
   };
 
-  const getSection = (course) => courses.filter(c => c.code === course.code).findIndex(c => c._id === course._id) + 1;
+  const getSection = (course) => {
+    // 1. ถ้ามีข้อมูล group จากฐานข้อมูล ให้ใช้เลย
+    if (course.group) return course.group;
+    // 2. ถ้าไม่มี (ของเก่า) ให้คำนวณจาก index เหมือนเดิม
+    return courses.filter(c => c.code === course.code).findIndex(c => c._id === course._id) + 1;
+  };
   const filtered = courses.filter(c => c.code.toLowerCase().includes(searchText.toLowerCase()) || c.name.toLowerCase().includes(searchText.toLowerCase()));
   const totalCredits = cart.reduce((sum, c) => sum + c.credit, 0);
 

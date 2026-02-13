@@ -10,13 +10,19 @@ mongoose.connect(mongoURI)
   .catch(err => console.log(err));
 
 // Schema (ต้องตรงกับ Database)
-const SEMESTER = "3/2568"; // ← กำหนดเทอมที่จะ seed
+// รับค่าจาก Command Line: node seed.js <SEMESTER> <FILENAME>
+// ตัวอย่าง: node seed.js "1/2569" "courses_1_2569.json"
+const SEMESTER = process.argv[2] || "3/2568";
+const FILENAME = process.argv[3] || "courses.json";
+
+console.log(`📌 Seeding data for Semester: ${SEMESTER} from file: ${FILENAME}`);
 
 const courseSchema = new mongoose.Schema({
   code: String,
   name: String,
   credit: String,
   time: String,
+  group: String,
   semester: { type: String, default: SEMESTER }
 });
 
@@ -24,35 +30,22 @@ const Course = mongoose.model('Course', courseSchema);
 
 const importData = async () => {
   try {
-    // 1. อ่านไฟล์ CSV
-    const data = fs.readFileSync('./courses.csv', 'utf-8');
+    // 1. อ่านไฟล์ JSON
+    const data = fs.readFileSync(`./${FILENAME}`, 'utf-8');
+    const coursesData = JSON.parse(data);
 
-    // 2. แปลง CSV เป็น JSON Object
-    // แยกบรรทัด -> กรองบรรทัดว่าง -> แปลงข้อมูล
-    const lines = data.split('\n').filter(line => line.trim() !== '');
+    // 2. เติมข้อมูล semester และ group ลงไป (ถ้า JSON ยังไม่มี)
+    const finalData = coursesData.map(c => ({
+      ...c,
+      semester: SEMESTER
+    }));
 
-    const coursesData = lines.map(line => {
-      // เทคนิค: แยกด้วย string "," (ลูกน้ำที่อยู่ระหว่างฟันหนู)
-      // เพื่อป้องกันกรณีในชื่อวิชามีลูกน้ำ
-      const parts = line.split('","');
+    // 3. ล้างของเก่าเฉพาะเทอมนี้ แล้วยัดของใหม่
+    await Course.deleteMany({ semester: SEMESTER });
+    console.log(`🧹 clear old data for ${SEMESTER} successfully`);
 
-      // Clean ข้อมูล: ลบฟันหนูตัวแรกสุดและตัวท้ายสุดออก
-      const cleanParts = parts.map(p => p.replace(/^"|"$/g, '').trim());
-
-      return {
-        code: cleanParts[0],
-        name: cleanParts[1],
-        credit: cleanParts[2],
-        time: cleanParts[3]
-      };
-    });
-
-    // 3. ล้างของเก่าแล้วยัดของใหม่
-    await Course.deleteMany();
-    console.log('🧹 clear old data successfully');
-
-    await Course.insertMany(coursesData);
-    console.log(`🚛 add data successfully ${coursesData.length} วิชา!`);
+    await Course.insertMany(finalData);
+    console.log(`🚛 add data successfully ${finalData.length} วิชา!`);
 
     process.exit();
   } catch (error) {

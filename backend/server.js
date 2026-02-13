@@ -20,7 +20,7 @@ mongoose.connect(mongoURI)
 
 // --- 2. สร้าง Schema ---
 const courseSchema = new mongoose.Schema({
-  code: String, name: String, credit: Number, time: String,
+  code: String, name: String, credit: Number, time: String, group: String,
   semester: { type: String, default: "3/2568" }
 });
 const Course = mongoose.model('Course', courseSchema);

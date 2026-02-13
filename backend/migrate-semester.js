@@ -14,7 +14,7 @@ mongoose.connect(mongoURI)
 
 // Schema ตามโครงสร้างใหม่
 const courseSchema = new mongoose.Schema({
-    code: String, name: String, credit: Number, time: String,
+    code: String, name: String, credit: Number, time: String, group: String,
     semester: { type: String, default: DEFAULT_SEMESTER }
 });
 const Course = mongoose.model('Course', courseSchema);
