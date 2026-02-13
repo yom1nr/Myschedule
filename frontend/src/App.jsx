@@ -77,55 +77,64 @@ function App() {
   }, [isDarkMode, theme]);
 
   // 📡 4. โหลดรายวิชา (ตามเทอมที่เลือก)
-  useEffect(() => {
-    if (!selectedSemester) return;
-    fetch(`https://myscheduleapi.onrender.com/api/courses?semester=${encodeURIComponent(selectedSemester)}`)
-      .then(res => res.json())
-      .then(data => {
-        let clean = (Array.isArray(data) ? data : []).map(c => ({
-          _id: c._id, 
-          code: c.code || "N/A", 
-          name: c.name || "Unknown", 
-          credit: parseInt(c.credit || 0), 
-          credit: parseInt(c.credit || 0), 
-          time: c.time || "-",
-          group: c.group || null // รับค่า group (ถ้ามี)
-        }));
+useEffect(() => {
+  if (!selectedSemester) return;
+  fetch(`https://myscheduleapi.onrender.com/api/courses?semester=${encodeURIComponent(selectedSemester)}`)
+    .then(res => res.json())
+    .then(data => {
+      let clean = (Array.isArray(data) ? data : []).map(c => ({
+        _id: c._id, 
+        code: c.code || "N/A", 
+        name: c.name || "Unknown", 
+        credit: parseInt(c.credit || 0), 
+        time: c.time || "-",
+        group: c.group || null
+      }));
 
-        // ฟังก์ชันแปลงเวลาเรียนเป็นตัวเลข (นาทีจากต้นสัปดาห์)
-        const getStartTimes = (timeStr) => {
-            const dayPriority = { "Mo": 1, "Tu": 2, "We": 3, "Th": 4, "Fr": 5, "Sa": 6, "Su": 7 };
-            const regex = /([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/g;
-            let matches = [];
-            let match;
-            while ((match = regex.exec(timeStr)) !== null) {
-                const day = dayPriority[match[1]] || 99;
-                const hour = parseInt(match[2]);
-                const min = parseInt(match[3]);
-                matches.push((day * 24 * 60) + (hour * 60) + min);
-            }
-            return matches.sort((a, b) => a - b);
-        };
-
-        clean.sort((a, b) => {
-          if (a.code !== b.code) {
-              return a.code.localeCompare(b.code);
+      // ฟังก์ชันแปลงเวลาเรียนเป็นตัวเลข (นาทีจากต้นสัปดาห์)
+      const getStartTimes = (timeStr) => {
+          const dayPriority = { "Mo": 1, "Tu": 2, "We": 3, "Th": 4, "Fr": 5, "Sa": 6, "Su": 7 };
+          const regex = /([MoTuWeThFrSaSu]{2})(\d{2})[:.](\d{2})/g;
+          let matches = [];
+          let match;
+          while ((match = regex.exec(timeStr)) !== null) {
+              const day = dayPriority[match[1]] || 99;
+              const hour = parseInt(match[2]);
+              const min = parseInt(match[3]);
+              matches.push((day * 24 * 60) + (hour * 60) + min);
           }
-          const timesA = getStartTimes(a.time);
-          const timesB = getStartTimes(b.time);
-          const maxLen = Math.max(timesA.length, timesB.length);
-          for (let i = 0; i < maxLen; i++) {
-              const valA = timesA[i] !== undefined ? timesA[i] : 999999;
-              const valB = timesB[i] !== undefined ? timesB[i] : 999999;
-              if (valA !== valB) return valA - valB;
-          }
-          return a.time.localeCompare(b.time); 
-        });
+          return matches.sort((a, b) => a - b);
+      };
 
-        setCourses(clean);
-      })
-      .catch(console.error);
-  }, [selectedSemester]);
+      clean.sort((a, b) => {
+        // 1. เรียงตาม code ก่อน
+        if (a.code !== b.code) {
+            return a.code.localeCompare(b.code);
+        }
+        
+        // 2. ถ้า code เหมือนกัน ให้เรียงตาม group (ถ้ามี)
+        const groupA = a.group || 999; // ถ้าไม่มี group ให้ไปท้ายสุด
+        const groupB = b.group || 999;
+        if (groupA !== groupB) {
+            return groupA - groupB;
+        }
+        
+        // 3. ถ้า group เหมือนกันด้วย ให้เรียงตามเวลา
+        const timesA = getStartTimes(a.time);
+        const timesB = getStartTimes(b.time);
+        const maxLen = Math.max(timesA.length, timesB.length);
+        for (let i = 0; i < maxLen; i++) {
+            const valA = timesA[i] !== undefined ? timesA[i] : 999999;
+            const valB = timesB[i] !== undefined ? timesB[i] : 999999;
+            if (valA !== valB) return valA - valB;
+        }
+        return a.time.localeCompare(b.time); 
+      });
+
+      setCourses(clean);
+    })
+    .catch(console.error);
+}, [selectedSemester]);
 
 
 
